@@ -8,43 +8,93 @@ import random
 import json
 import numpy as np
 from tqdm import tqdm
-from skimage.transform import pyramid_gaussian
+
+from debug import get_single_debug_image_name
+
+valid_objects = [
+    'person',
+    'people'
+]
+
+def get_pascal_voc_text_data(file_name):
+    bbox = []
+    with open(file_name) as f:
+        for line in f:
+            if "Bounding box" in line:
+                line = line.split(":")[1].strip("\n").strip().replace(" ","")
+                coordinate_arr = line.split("-")
+                x1,y1 = map( lambda x:int(x) ,coordinate_arr[0].replace(")","").replace("(","").split(","))
+                x3,y3 = map( lambda x:int(x) ,coordinate_arr[1].replace(")","").replace("(","").split(","))
+                bbox.append([x1,y1,x3,y3])
+    return bbox
+
+def get_pascal_voc_xml_data(file_name):
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(file_name)
+    root = tree.getroot()
+    bbox = []
+
+    for obj in root.findall('object'):
+        if not obj.find("name").text.lower() in valid_objects:
+            continue
+        bndbox = obj.find('bndbox')
+        bbox.append([
+            int(bndbox.find('xmin').text),
+            int(bndbox.find('ymin').text),
+            int(bndbox.find('xmax').text),
+            int(bndbox.find('ymax').text)
+        ])
+    return bbox
+
 
 # Prepare Data For training SVM
-def prepare_data(args,template_size):
+def prepare_data(image_folder, window_size):
 
-    f=open(args.train_json,'r') 
-    data=json.load(f)
-    images_dict=data['images']
-    images=[images_dict[i]['file_name'].split('/')[2] for i in range(len(images_dict))]
-    f.close()
+    image_dir = os.path.join(image_folder, "frame")
+    annotation_dir = os.path.join(image_folder, "annotations")
 
+    image_subdirs = [
+        os.path.join(image_dir, subdir, "frame")
+        for subdir in os.listdir(image_dir)
+        if os.path.isdir(os.path.join(image_dir, subdir))
+    ]
+
+    # images = [file for subdir in image_subdirs for file in os.listdir(subdir))]
+    images = [os.path.join(subdir, file) for subdir in image_subdirs for file in os.listdir(subdir) if
+              os.path.isfile(os.path.join(subdir, file))]
+
+    # images = [file for file in os.listdir(image_dir) if not file.startswith(get_single_debug_image_name())]
 
     print("\nPreparing Training Data...")
 
-    train_x = [] #trainx containes images
-    train_y = [] #contains labels, 1 for postive images and 0 for negative images
+    training_data_points = [] #trainx containes images
+    training_labels = [] #contains labels, 1 for postive images and 0 for negative images
     num_pos=0
     num_neg=0
-    for num,file in enumerate(tqdm(images)):
-        
-        image = cv2.imread(os.path.join(args.inp_folder,"PNGImages",file))
-        with open(os.path.join(args.inp_folder,"Annotation" ,file[:-3]+"txt")) as f:
-            bbox_arr = []
-            for line in f:
-                if "Bounding box" in line:
-                    line = line.split(":")[1].strip("\n").strip().replace(" ","")
-                    coordinate_arr = line.split("-")
-                    x1,y1 = map( lambda x:int(x) ,coordinate_arr[0].replace(")","").replace("(","").split(","))
-                    x3,y3 = map( lambda x:int(x) ,coordinate_arr[1].replace(")","").replace("(","").split(","))
-                    bbox_arr.append([x1,y1,x3,y3])
 
-        # Take negative samples of [template_size[0],template_size[1]] -> Resize later to req. template_size
-        for nothing in range(3):
+    for num,image_file_location in enumerate(tqdm(images)):
+        print("Reading file name: ", image_file_location)
+        image = cv2.imread(image_file_location)
+
+        partial_location = image_file_location.split(os.sep)[-3:]
+        partial_location[1] = 'bbox'
+        annotation_file_location = os.path.join(
+            annotation_dir,
+            "/".join(map(str, partial_location))
+        )[:-4]
+
+        if os.path.exists(annotation_file_location+".txt"):
+            bbox_arr = get_pascal_voc_text_data(annotation_file_location+".txt")
+        elif os.path.exists(annotation_file_location+".xml"):
+            bbox_arr = get_pascal_voc_xml_data(annotation_file_location+".xml")
+        else:
+            raise Exception("Annotation file not found")
+        print("appending negative samples")
+        for _ in range(3):
             h, w = image.shape[:2]
-            if h > template_size[0] or w > template_size[1]:
-                h = h - template_size[0]; 
-                w = w - template_size[1]
+            if h > window_size[0] or w > window_size[1]:
+                h = h - window_size[0];
+                w = w - window_size[1]
 
                 overlap = [True for i in bbox_arr]
                 max_loop = 0
@@ -55,7 +105,7 @@ def prepare_data(args,template_size):
                     overlap = [True for i in bbox_arr]
                     x = random.randint(0, w)
                     y = random.randint(0, h)
-                    window = [x,y,x+template_size[1],y+template_size[0]]
+                    window = [x, y, x + window_size[1], y + window_size[0]]
                     for var,bbox in enumerate(bbox_arr):
                         dx = min(bbox[2], window[2]) - max(bbox [0], window[0])
                         dy = min(bbox[3], window[3]) - max(bbox[1],  window[1])
@@ -63,30 +113,28 @@ def prepare_data(args,template_size):
                             overlap[var] = False
                 if max_loop<10:
                     img = image[window[1]:window[3],window[0]:window[2]]
-                    train_x.append(img)
-                    train_y.append(0)
+                    training_data_points.append(img)
+                    training_labels.append(0)
                     num_neg+=1
-
+        print("appending positive samples")
         for box in bbox_arr:
             img = image[box[1]:box[3],box[0]:box[2]]
-            train_x.append(img)
-            train_y.append(1)
+            training_data_points.append(img)
+            training_labels.append(1)
             num_pos+=1
-            
-    train_x = [cv2.resize(image,(template_size[1],template_size[0])) for image in train_x]
-    print(f"Prepared {num_pos} positive & {num_neg} training examples")
+    print("resizing data points")
+    training_data_points = [cv2.resize(data_point, (window_size[1], window_size[0])) for data_point in training_data_points]
+    print(f"Prepared {num_pos} positive & {num_neg} negative training examples")
 
-    if args.vis:
-        print(f"Saving training images in {str(args.inp_folder)+'/train_data_hog_custom'}")
-        if os.path.exists(str(args.inp_folder)+"/train_data_hog_custom"):
-            shutil.rmtree(str(args.inp_folder)+"/train_data_hog_custom")
-        os.mkdir(str(args.inp_folder)+"/train_data_hog_custom")
-        for num_sample,img in enumerate(train_x):
-            cv2.imwrite(str(args.inp_folder)+"/train_data_hog_custom/"+str(train_y[num_sample])+"_"+str(num_sample)+".png",img)
+    # if args.vis:
+    #     print(f"Saving training images in {str(image_folder)+'/train_data_hog_custom'}")
+    #     if os.path.exists(str(image_folder)+"/train_data_hog_custom"):
+    #         shutil.rmtree(str(image_folder)+"/train_data_hog_custom")
+    #     os.mkdir(str(image_folder)+"/train_data_hog_custom")
+    #     for num_sample,img in enumerate(train_x):
+    #         cv2.imwrite(str(image_folder)+"/train_data_hog_custom/"+str(train_y[num_sample])+"_"+str(num_sample)+".png",img)
 
-    return train_x,train_y
-
-
+    return training_data_points,training_labels
 
 def NMS(boxes, confidence,th = 0.3):
     if len(boxes) == 0:
@@ -123,15 +171,17 @@ def NMS(boxes, confidence,th = 0.3):
     
     return np.array(final_rects, dtype=int),np.array(final_confidence, dtype=float)
 
-
-
-
 # Sliding Window
-def sliding_window(image, template_size, step_size):
-    res = []
+def sliding_window(image, window_size, step_size):
+    res_windows = []
     for y in range(0, image.shape[0], step_size[0]):
         for x in range(0, image.shape[1], step_size[1]):
-            res.append([x, y, image[y: y + template_size[0], x: x + template_size[1]]])
-    return res
+            res_windows.append([x, y, image[y: y + window_size[0], x: x + window_size[1]]])
+    return res_windows
 
+def get_grayscale_image(image):
+    return cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 
+import cv2
+def get_grayscale_image(image):
+   return cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
