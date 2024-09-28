@@ -4,15 +4,13 @@ from hog import HOG_Parameters
 from svm import SVM_Parameters, train_svm, get_model_predictions
 from utils import prepare_data
 
-window_sizes = [(128, 64), (96, 48), (160, 80), (192, 96), (112,48), (144, 72), (88,176), (64,128), (48,96), (32,64)]
-step_sizes = [(10, 10), (8, 8), (12, 12), (16, 16), (8, 16), (16, 8), (8, 4), (4, 8), (4, 4), (2, 2)]
-orientations = [9, 7, 11, 13, 15, 17, 18, 19, 20, 21, 22]
-pixels_per_cell = [(8, 8), (6, 6), (10, 10), (12, 12), (14, 14), (16, 16), (2,1), (1,2), (4,4), (2,2)]
-cells_per_block = [(2, 2), (1, 1), (3, 3), (4, 4), (5, 5), (6, 6), (1,2), (2,1), (1,1), (2,2)]
-block_strides = [(1, 1), (2, 2), (3, 3), (4, 4), (1,2), (2,1), (1,1), (2,2)]
-
+window_sizes = [(128, 64), (96, 48), (112,48), (144, 72), (196, 128)]
+step_sizes = [(10, 10), (8, 8), (12, 12), (16, 16), (8, 16), (4, 4), (2, 2)]
+orientations = [9, 13, 18]
+pixels_per_cell = [(8, 8), (6, 6), (10, 10), (12, 12), (14, 14), (16, 16), (4,4), (2,2), (1,1)]
+cells_per_block = [(2, 2), (1, 1), (3, 3), (4, 4), (5, 5), (6, 6)]
+block_strides = [(1, 1), (2, 2), (3, 3), (4, 4)]
 holistic_derivative_masks = [True, False]
-block_norms = ['L1', 'L1-sqrt', 'L2', 'L2-Hys']
 
 
 def main(dataset_dir):
@@ -101,9 +99,26 @@ def test():
 
 def test2():
     prepare_data("../datasets/caltech_parsed/Train", (128, 64))
+
+
+def count():
+    print("Window Sizes: ", len(window_sizes))
+    print("Step Sizes: ", len(step_sizes))
+    print("Orientations: ", len(orientations))
+    print("Pixels Per Cell: ", len(pixels_per_cell))
+    print("Cells Per Block: ", len(cells_per_block))
+    print("Block Strides: ", len(block_strides))
+    print("Holistic Derivative Masks: ", len(holistic_derivative_masks))
+    print("------------------- Total -------------------")
+    largest_window_dimensions = max(window_sizes, key=lambda x: x[0] * x[1])
+    smallest_block_dimensions = min(cells_per_block, key=lambda x: x[0] * x[1])
+    biggest_block_strides = max(block_strides, key=lambda x: x[0] * x[1])
+    print("Total Models: ", len(window_sizes) * len(orientations) * len(pixels_per_cell) * len(cells_per_block) * len(block_strides) * len(holistic_derivative_masks))
+    print("Largest Feature Vector: ", ((largest_window_dimensions[0]-smallest_block_dimensions[0]*biggest_block_strides[0])*(largest_window_dimensions[1]-smallest_block_dimensions[1]*biggest_block_strides[1])*9)/(biggest_block_strides[0]*biggest_block_strides[1]))
+
 if __name__ == "__main__":
     # prepare_all_models()
     # test()
-    test2()
+    count()
     # dataset_dir = "datasets/Penn-Fudan"
     # main(dataset_dir)
