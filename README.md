@@ -4,4 +4,3 @@
 Person and person-like images](https://www.kaggle.com/datasets/karthika95/pedestrian-detection)
 
 `datasets/INRIA`: [INRIA Pedestrian Dataset](https://www.kaggle.com/datasets/jcoral02/inriaperson/data)
-

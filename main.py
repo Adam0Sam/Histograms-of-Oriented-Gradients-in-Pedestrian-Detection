@@ -224,6 +224,8 @@ def train_sgd():
 window_sizes = [(100, 50), (128, 96), (128, 64), (112, 48)]
 orientations = [9, 13, 18]
 # (4,4), (6,6), (8,8)
+
+# ASSIGN YOUR CELL SIZE HERE
 pixels_per_cell_list = [(10,10)]
 cells_per_block_list = [(1,1),(2,2), (3,3), (4,4)]
 block_strides = [(1,1), (2,2), (3,3)]
@@ -243,8 +245,7 @@ def get_model_count():
     return count
 
 def prep_models():
-    total_model_count = len(window_sizes) * len(orientations) * len(pixels_per_cell_list) * len(
-        cells_per_block_list) * len(block_strides) * len(holistic_derivative_masks)
+    total_model_count = get_model_count()
     current_iteration = 0
 
     for window_size in window_sizes:
