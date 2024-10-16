@@ -1,5 +1,5 @@
 numpy
 opencv-python
-skimage
-sklearn
 tqdm
+scikit-image
+scikit-learn
