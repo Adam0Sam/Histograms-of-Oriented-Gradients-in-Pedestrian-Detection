@@ -1,6 +1,7 @@
 generated_figures
 measurements
 assets
-latex/out
+out
+_minted-main
 main.py
 old.py
