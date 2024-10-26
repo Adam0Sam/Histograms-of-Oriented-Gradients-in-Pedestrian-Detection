@@ -146,7 +146,9 @@ def get_hog_computation_intensity():
             'ram_usage': process.memory_info().rss / 1024 / 1024,
             'ram_percent': process.memory_percent()
         }
-    iterate_model_parameters(compute_intensity)
+    
+    for svm_parameters in iterate_model_parameters():
+        compute_intensity(svm_parameters)
 
     tracemalloc.stop()
     save_measurements(dimension_time_map, dimension_memory_map)

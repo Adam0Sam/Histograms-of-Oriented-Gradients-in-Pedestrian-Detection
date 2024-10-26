@@ -1,8 +1,12 @@
 
+import re
 import cv2
 import os, shutil
 import random
 import json
+from dataset import get_dataset_path
+from parameters import HOG_Parameters, SVM_Parameters, iterate_model_parameters, datasets
+from transform import grayscale_transform, hog_transform
 import numpy as np
 from sklearn.linear_model import SGDClassifier
 from tqdm import tqdm
@@ -11,84 +15,6 @@ valid_objects = [
     'person',
     'people'
 ]
-
-def train():
-    grayify = RGB2GrayTransformer()
-    hogify = HogTransformer(hog_parameters)
-    scalify = StandardScaler()
-
-    X_train, y_train = prepare_labeled_data('../../datasets/caltech_30/Train', window_size)
-
-    # X_train = np.load('../../datasets/playground/train/train_x.npy')
-    # y_train = np.load('../../datasets/playground/train/train_y.npy')
-
-    print("Grayfiying")
-    X_train_gray = grayify.fit_transform(X_train)
-    print("Hogifying")
-    X_train_hog = hogify.fit_transform(X_train_gray)
-    print("Scalifying")
-    # X_train_prepared = scalify.fit_transform(X_train_hog)
-
-    print("Training")
-    sgd_clf = SGDClassifier(random_state=42, max_iter=1000, tol=1e-3)
-    sgd_clf.fit(X_train_hog, y_train)
-
-    print("Testing")
-
-    # X_test = np.load('../../datasets/playground/test/test_x.npy')
-    # y_test = np.load('../../datasets/playground/test/test_y.npy')
-
-    print("Preparing test from caltech")
-
-    X_test, y_test = prepare_labeled_data('../../datasets/caltech_30/Test', window_size)
-
-    X_test_gray = grayify.transform(X_test)
-    X_test_hog = hogify.transform(X_test_gray)
-    # X_test_prepared = scalify.transform(X_test_hog)
-
-    y_pred = sgd_clf.predict(X_test_hog)
-    print(np.array(y_test == y_pred).mean())
-
-def NMS(boxes, confidence,th = 0.3):
-    if len(boxes) == 0:
-        return np.array([], dtype=int),np.array([], dtype=float)
-    rects_with_confidence = [[boxes[i],confidence[i]] for i in range(len(boxes))]
-
-    rects_with_confidence = (sorted(rects_with_confidence, key=lambda box: box[1][0],reverse=True))
-
-    rects = [var[0] for var in rects_with_confidence]
-    
-    bool_arr = [True for i in rects_with_confidence]
-    
-    for i,box in enumerate(rects):
-        if bool_arr[i] == True:
-            for j,other_box in enumerate(rects[i+1:]):
-                k = j+i+1
-                if bool_arr[k] == True:
-                    dx = max(0,min(box[2], other_box[2]) - max(box [0], other_box[0]))
-                    dy = max(0,min(box[3], other_box[3]) - max(box[1], other_box[1]))
-                    
-                    overlap = float(dx*dy)
-                    overlap_percentage = overlap/((other_box[3]-other_box[1])*(other_box[2]-other_box[0]))
-                    if overlap_percentage > th:
-                        bool_arr[k] = False
-                    
-    
-    final_rects = []
-    final_confidence = []
-    for i,rect in enumerate(rects):
-        if bool_arr[i]:
-            final_rects.append(rect)
-            final_confidence.append(rects_with_confidence[i][1][0])
-    
-    return np.array(final_rects, dtype=int),np.array(final_confidence, dtype=float)
-
-def sliding_window(image, window_size, step_size):
-    res_windows = []
-    for y in range(0, image.shape[0], step_size[0]):
-        for x in range(0, image.shape[1], step_size[1]):
-            res_windows.append([x, y, image[y: y + window_size[0], x: x + window_size[1]]])
-    return res_windows
 
 def move_files_to_parent(folder_path):
     for root, dirs, files in os.walk(folder_path):
@@ -155,15 +81,76 @@ def retain_30th_frame():
                     if os.path.isfile(annotation_file_location):
                         os.remove(annotation_file_location)
 
+def get_concatenated_test_samples(svm_parameters: SVM_Parameters):
+    total_x = []
+    total_y = []
+    for dataset in datasets:
+        X_test_raw = np.load(get_dataset_path(svm_parameters.window_size, 'test', 'point', dataset))
+        X_test = hog_transform(
+            grayscale_transform(X_test_raw),
+            svm_parameters.hog_parameters
+        )
+        y_test = np.load(get_dataset_path(svm_parameters.window_size, 'test', 'label', dataset))
 
-if __name__ == "__main__":
-    caltech_data_points, caltech_labels = prepare_data("../../datasets/caltech_30/Train", (128, 64))
-    inria_data_points, inria_labels = prepare_data("../../datasets/INRIA/Train", (128, 64))
-    pnplo_data_points, pnplo_labels = prepare_data("../../datasets/PnPLO/Train", (128, 64))
+        total_x.append(X_test)
+        total_y.append(y_test)
+    return np.concatenate(total_x), np.concatenate(total_y)
 
-    np.save(
-        "../../datasets/data_points.npy",
-        np.array(caltech_data_points + inria_data_points + pnplo_data_points)
+def getattrs(obj):
+    if not hasattr(obj, '__class__'):
+        raise ValueError("The provided object is not an instance of a class.")
+    return [a for a in dir(obj) if not a.startswith('__') and not callable(getattr(obj, a))]
+
+def get_detectors_by_prop(prop, prop_value):
+    dummy_hog = HOG_Parameters(
+        pixels_per_cell=(8,8),
+        cells_per_block=(2,2),
+        orientations=9,
+        holistic_derivative_mask=True,
+        block_stride=(1,1),
     )
-    np.save("../../datasets/labels.npy", np.array(caltech_labels + inria_labels + pnplo_labels))
+    dummy_svm = SVM_Parameters(
+        (128, 64),
+        dummy_hog
+    )
+    
+    if prop not in getattrs(dummy_svm) and prop not in getattrs(dummy_hog):
+        raise ValueError(f"Property {prop} not found in SVM_Parameters or HOG_Parameters.")
+    
+    detectors = []
+    for svm_params in iterate_model_parameters():
+        if prop == 'window_size':
+            if getattr(svm_params, prop) == prop_value:
+                detectors.append(svm_params)
+        elif getattr(svm_params.hog_parameters, prop) == prop_value:
+            detectors.append(svm_params)
+    return detectors
 
+def get_svm_params(detector_name):
+    orientations = re.search(r'orientations_(\d+)', detector_name)
+    pixels_per_cell = re.search(r'pixels_per_cell_\((\d+),\s*(\d+)\)', detector_name)
+    cells_per_block = re.search(r'cells_per_block_\((\d+),\s*(\d+)\)', detector_name)
+    block_stride = re.search(r'block_stride_\((\d+),\s*(\d+)\)', detector_name)
+    holistic_derivative_mask = re.search(r'holistic_derivative_mask_(True|False)', detector_name)
+    window_size = re.search(r'window_\((\d+),\s*(\d+)\)', detector_name)
+
+    # Extract the values
+    W_h, W_w = window_size.group(1), window_size.group(2) if window_size else (None, None)
+    orientations_value = orientations.group(1) if orientations else None
+    c_h, c_w = pixels_per_cell.group(1), pixels_per_cell.group(2) if pixels_per_cell else (None, None)
+    b_h, b_w = cells_per_block.group(1), cells_per_block.group(2) if cells_per_block else (None, None)
+    s_h, s_w = block_stride.group(1), block_stride.group(2) if block_stride else (None, None)
+    hdm = holistic_derivative_mask.group(1) if holistic_derivative_mask else None
+    
+    hog_parameters = HOG_Parameters(
+        orientations=int(orientations_value),
+        pixels_per_cell=(int(c_h), int(c_w)),
+        cells_per_block=(int(b_h), int(b_w)),
+        block_stride=(int(s_h), int(s_w)),
+        holistic_derivative_mask=True if hdm == 'True' else False,
+        block_norm='L2-Hys'
+    )
+    return SVM_Parameters(
+        hog_parameters=hog_parameters,
+        window_size=(int(W_h), int(W_w))
+    )

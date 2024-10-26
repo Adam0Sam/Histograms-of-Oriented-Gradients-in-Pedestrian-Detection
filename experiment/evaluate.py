@@ -1,5 +1,6 @@
 import os
 import warnings
+from experiment.utils import get_svm_params
 import numpy as np
 from sklearn.metrics import average_precision_score, roc_curve, auc, log_loss, recall_score, precision_score, f1_score, \
     precision_recall_curve, confusion_matrix, matthews_corrcoef
@@ -117,7 +118,7 @@ def print_evaluation_summary(metrics):
     if 'log_loss' in metrics:
         print(f"Log Loss: {metrics['log_loss']:.3f}")
 
-def get_k_rows(metric, dataset, row_count=10, top=True):
+def get_k_rows(metric, dataset, custom_name_list=None, row_count=10, top=True):
     if metric not in score_keys:
         raise ValueError(f"Invalid Metric: {metric}")
     if dataset not in datasets and dataset != 'total':
@@ -132,11 +133,13 @@ def get_k_rows(metric, dataset, row_count=10, top=True):
             score_map[svm_parameters.get_svm_name()] = score
         else:
             print(f"Score for {svm_parameters.get_svm_name()} not found")
-
-    iterate_model_parameters(get_score)
+    
+    if custom_name_list is not None and len(custom_name_list) > 0:
+        for name in custom_name_list:
+            svm_parameters = get_svm_params(name)
+            get_score(svm_parameters)
 
     sorted_scores = sorted(score_map.items(), key=lambda x: x[1][score_keys.index(metric)], reverse=top)
-    
     
     top_k_rows = sorted_scores[:row_count] if row_count > 0 else sorted_scores
     return [(row_name, scores[score_keys.index(metric)]) for row_name, scores in top_k_rows]
@@ -176,7 +179,9 @@ def compute_score_table(dataset, window_size=None, cheap=None, overwrite=False):
             np.save(score_file_name, score)
             current_row += 1
 
-    iterate_model_parameters(compute_row, cheap=cheap)
+    for svm_parameters in iterate_model_parameters(cheap=cheap):
+        compute_row(svm_parameters)
+        
     if all_exist:
         print("All scores exist")
     return table
@@ -208,6 +213,8 @@ def get_dimension_map():
             svm_parameters.hog_parameters.get_hog_name(), svm_parameters.window_size
         )
 
-    iterate_model_parameters(get_dimensions)
+    for svm_parameters in iterate_model_parameters():
+        get_dimensions(svm_parameters)
+        
     return dimension_map
 

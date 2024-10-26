@@ -143,34 +143,6 @@ def plot_roc_curve(svm_parameters: SVM_Parameters):
     ax.legend(loc="lower right")
     plt.show()
     
-def get_svm_params(detector_name):
-    orientations = re.search(r'orientations_(\d+)', detector_name)
-    pixels_per_cell = re.search(r'pixels_per_cell_\((\d+),\s*(\d+)\)', detector_name)
-    cells_per_block = re.search(r'cells_per_block_\((\d+),\s*(\d+)\)', detector_name)
-    block_stride = re.search(r'block_stride_\((\d+),\s*(\d+)\)', detector_name)
-    holistic_derivative_mask = re.search(r'holistic_derivative_mask_(True|False)', detector_name)
-    window_size = re.search(r'window_\((\d+),\s*(\d+)\)', detector_name)
-
-    # Extract the values
-    W_h, W_w = window_size.group(1), window_size.group(2) if window_size else (None, None)
-    orientations_value = orientations.group(1) if orientations else None
-    c_h, c_w = pixels_per_cell.group(1), pixels_per_cell.group(2) if pixels_per_cell else (None, None)
-    b_h, b_w = cells_per_block.group(1), cells_per_block.group(2) if cells_per_block else (None, None)
-    s_h, s_w = block_stride.group(1), block_stride.group(2) if block_stride else (None, None)
-    hdm = holistic_derivative_mask.group(1) if holistic_derivative_mask else None
-    
-    hog_parameters = HOG_Parameters(
-        orientations=int(orientations_value),
-        pixels_per_cell=(int(c_h), int(c_w)),
-        cells_per_block=(int(b_h), int(b_w)),
-        block_stride=(int(s_h), int(s_w)),
-        holistic_derivative_mask=True if hdm == 'True' else False,
-        block_norm='L2-Hys'
-    )
-    return SVM_Parameters(
-        hog_parameters=hog_parameters,
-        window_size=(int(W_h), int(W_w))
-    )
 
 def plot_mcc_f1_curve(estimator, X, y, *, sample_weight=None,
                       response_method="auto", name=None, ax=None,
