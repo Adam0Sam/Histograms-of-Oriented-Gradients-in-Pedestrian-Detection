@@ -1,0 +1,90 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import} \PYG{n+nn}{os}
+\PYG{k+kn}{import} \PYG{n+nn}{numpy} \PYG{k}{as} \PYG{n+nn}{np}
+\PYG{k+kn}{from} \PYG{n+nn}{sklearn.metrics} \PYG{k+kn}{import} \PYG{n}{average\PYGZus{}precision\PYGZus{}score}\PYG{p}{,} \PYG{n}{roc\PYGZus{}curve}\PYG{p}{,} \PYG{n}{auc}\PYG{p}{,} \PYG{n}{recall\PYGZus{}score}\PYG{p}{,} \PYG{n}{precision\PYGZus{}score}\PYG{p}{,} \PYG{n}{f1\PYGZus{}score}\PYG{p}{,} \PYGZbs{}
+    \PYG{n}{precision\PYGZus{}recall\PYGZus{}curve}\PYG{p}{,} \PYG{n}{confusion\PYGZus{}matrix}\PYG{p}{,} \PYG{n}{matthews\PYGZus{}corrcoef}
+
+\PYG{k+kn}{from} \PYG{n+nn}{dataset} \PYG{k+kn}{import} \PYG{n}{get\PYGZus{}dataset\PYGZus{}path}\PYG{p}{,} \PYG{n}{datasets}
+\PYG{k+kn}{from} \PYG{n+nn}{parameters} \PYG{k+kn}{import} \PYG{n}{HOG\PYGZus{}Parameters}\PYG{p}{,} \PYG{n}{SVM\PYGZus{}Parameters}
+\PYG{k+kn}{from} \PYG{n+nn}{svm} \PYG{k+kn}{import} \PYG{n}{load\PYGZus{}svm}
+\PYG{k+kn}{from} \PYG{n+nn}{transform} \PYG{k+kn}{import} \PYG{n}{hog\PYGZus{}transform}\PYG{p}{,} \PYG{n}{grayscale\PYGZus{}transform}
+\PYG{k+kn}{from} \PYG{n+nn}{variables} \PYG{k+kn}{import} \PYG{n}{iterate\PYGZus{}model\PYGZus{}parameters}\PYG{p}{,} \PYG{n}{get\PYGZus{}model\PYGZus{}count}
+
+\PYG{n}{score\PYGZus{}keys} \PYG{o}{=} \PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}mcc\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}accuracy\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}f1\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}fppw\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}auc\PYGZus{}roc\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}average\PYGZus{}precision\PYGZsq{}}\PYG{p}{]}
+\PYG{n}{score\PYGZus{}index\PYGZus{}map} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{n}{key}\PYG{p}{:} \PYG{n}{i} \PYG{k}{for} \PYG{n}{i}\PYG{p}{,} \PYG{n}{key} \PYG{o+ow}{in} \PYG{n+nb}{enumerate}\PYG{p}{(}\PYG{n}{score\PYGZus{}keys}\PYG{p}{)\PYGZcb{}}
+
+\PYG{k}{def} \PYG{n+nf}{evaluate\PYGZus{}pedestrian\PYGZus{}classifier}\PYG{p}{(}\PYG{n}{model}\PYG{p}{,} \PYG{n}{X\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}test}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    Evaluate a binary classifier for pedestrian detection using multiple metrics.}
+
+\PYG{l+s+sd}{    Parameters:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    model : trained classifier object}
+\PYG{l+s+sd}{        Must implement predict() and predict\PYGZus{}proba() or decision\PYGZus{}function()}
+\PYG{l+s+sd}{    X\PYGZus{}test : array\PYGZhy{}like}
+\PYG{l+s+sd}{        Test features}
+\PYG{l+s+sd}{    y\PYGZus{}test : array\PYGZhy{}like}
+\PYG{l+s+sd}{        True labels (0 for non\PYGZhy{}pedestrian, 1 for pedestrian)}
+
+\PYG{l+s+sd}{    Returns:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    dict : Dictionary containing evaluation metrics}
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{metrics} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+
+    \PYG{c+c1}{\PYGZsh{} If probabilities not available, use decision function}
+    \PYG{n}{y\PYGZus{}scores} \PYG{o}{=} \PYG{n}{model}\PYG{o}{.}\PYG{n}{decision\PYGZus{}function}\PYG{p}{(}\PYG{n}{X\PYGZus{}test}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} Normalize scores to [0,1] range for better interpretability}
+    \PYG{n}{y\PYGZus{}scores} \PYG{o}{=} \PYG{p}{(}\PYG{n}{y\PYGZus{}scores} \PYG{o}{\PYGZhy{}} \PYG{n}{y\PYGZus{}scores}\PYG{o}{.}\PYG{n}{min}\PYG{p}{())} \PYG{o}{/} \PYG{p}{(}\PYG{n}{y\PYGZus{}scores}\PYG{o}{.}\PYG{n}{max}\PYG{p}{()} \PYG{o}{\PYGZhy{}} \PYG{n}{y\PYGZus{}scores}\PYG{o}{.}\PYG{n}{min}\PYG{p}{())}
+
+    \PYG{n}{y\PYGZus{}pred} \PYG{o}{=} \PYG{n}{model}\PYG{o}{.}\PYG{n}{predict}\PYG{p}{(}\PYG{n}{X\PYGZus{}test}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} Basic classification metrics}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}accuracy\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{mean}\PYG{p}{(}\PYG{n}{y\PYGZus{}pred} \PYG{o}{==} \PYG{n}{y\PYGZus{}test}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} Confusion matrix and derived metrics}
+    \PYG{n}{cm} \PYG{o}{=} \PYG{n}{confusion\PYGZus{}matrix}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}pred}\PYG{p}{)}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}confusion\PYGZus{}matrix\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}true\PYGZus{}negatives\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{]}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}false\PYGZus{}positives\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{]}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}false\PYGZus{}negatives\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{]}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}true\PYGZus{}positives\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{]}
+
+    \PYG{c+c1}{\PYGZsh{} Precision, Recall, F1}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}precision\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{precision\PYGZus{}score}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}pred}\PYG{p}{)}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}recall\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{recall\PYGZus{}score}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}pred}\PYG{p}{)}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}f1\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{f1\PYGZus{}score}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}pred}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} Matthews Correlation Coefficient}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}mcc\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{matthews\PYGZus{}corrcoef}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}pred}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} Class\PYGZhy{}wise metrics}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}specificity\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{/} \PYG{p}{(}\PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{+} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{])}  \PYG{c+c1}{\PYGZsh{} True Negative Rate}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}fall\PYGZus{}out\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{]} \PYG{o}{/} \PYG{p}{(}\PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{+} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{])}  \PYG{c+c1}{\PYGZsh{} False Positive Rate}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}miss\PYGZus{}rate\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{/} \PYG{p}{(}\PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{+} \PYG{n}{cm}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{])}  \PYG{c+c1}{\PYGZsh{} False Negative Rate}
+
+    \PYG{k}{if} \PYG{n}{y\PYGZus{}scores} \PYG{o+ow}{is} \PYG{o+ow}{not} \PYG{k+kc}{None}\PYG{p}{:}
+        \PYG{c+c1}{\PYGZsh{} Precision\PYGZhy{}Recall curve}
+        \PYG{n}{precision}\PYG{p}{,} \PYG{n}{recall}\PYG{p}{,} \PYG{n}{pr\PYGZus{}thresholds} \PYG{o}{=} \PYG{n}{precision\PYGZus{}recall\PYGZus{}curve}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}scores}\PYG{p}{)}
+        \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}pr\PYGZus{}curve\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{p}{\PYGZob{}}
+            \PYG{l+s+s1}{\PYGZsq{}precision\PYGZsq{}}\PYG{p}{:} \PYG{n}{precision}\PYG{p}{,}
+            \PYG{l+s+s1}{\PYGZsq{}recall\PYGZsq{}}\PYG{p}{:} \PYG{n}{recall}\PYG{p}{,}
+            \PYG{l+s+s1}{\PYGZsq{}thresholds\PYGZsq{}}\PYG{p}{:} \PYG{n}{pr\PYGZus{}thresholds}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}average\PYGZus{}precision\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{average\PYGZus{}precision\PYGZus{}score}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}scores}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} ROC curve}
+        \PYG{n}{fpr}\PYG{p}{,} \PYG{n}{tpr}\PYG{p}{,} \PYG{n}{roc\PYGZus{}thresholds} \PYG{o}{=} \PYG{n}{roc\PYGZus{}curve}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{,} \PYG{n}{y\PYGZus{}scores}\PYG{p}{)}
+        \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}roc\PYGZus{}curve\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{p}{\PYGZob{}}
+            \PYG{l+s+s1}{\PYGZsq{}fpr\PYGZsq{}}\PYG{p}{:} \PYG{n}{fpr}\PYG{p}{,}
+            \PYG{l+s+s1}{\PYGZsq{}tpr\PYGZsq{}}\PYG{p}{:} \PYG{n}{tpr}\PYG{p}{,}
+            \PYG{l+s+s1}{\PYGZsq{}thresholds\PYGZsq{}}\PYG{p}{:} \PYG{n}{roc\PYGZus{}thresholds}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}auc\PYGZus{}roc\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{auc}\PYG{p}{(}\PYG{n}{fpr}\PYG{p}{,} \PYG{n}{tpr}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} Add some practical metrics}
+    \PYG{n}{total\PYGZus{}windows} \PYG{o}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{y\PYGZus{}test}\PYG{p}{)}
+    \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}fppw\PYGZsq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}false\PYGZus{}positives\PYGZsq{}}\PYG{p}{]} \PYG{o}{/} \PYG{n}{total\PYGZus{}windows}
+
+    \PYG{k}{return} \PYG{n}{metrics}
+
+\end{Verbatim}

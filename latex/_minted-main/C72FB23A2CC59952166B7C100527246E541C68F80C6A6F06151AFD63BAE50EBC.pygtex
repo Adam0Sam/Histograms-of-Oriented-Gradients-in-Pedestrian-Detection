@@ -1,0 +1,196 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import} \PYG{n+nn}{os}\PYG{o}{,} \PYG{n+nn}{glob}
+\PYG{k+kn}{import} \PYG{n+nn}{cv2}
+\PYG{k+kn}{from} \PYG{n+nn}{scipy.io} \PYG{k+kn}{import} \PYG{n}{loadmat}
+\PYG{k+kn}{from} \PYG{n+nn}{collections} \PYG{k+kn}{import} \PYG{n}{defaultdict}
+\PYG{k+kn}{import} \PYG{n+nn}{numpy} \PYG{k}{as} \PYG{n+nn}{np}
+\PYG{k+kn}{from} \PYG{n+nn}{lxml} \PYG{k+kn}{import} \PYG{n}{etree}\PYG{p}{,} \PYG{n}{objectify}
+
+\PYG{k}{def} \PYG{n+nf}{vbb\PYGZus{}anno2dict}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}file}\PYG{p}{,} \PYG{n}{cam\PYGZus{}id}\PYG{p}{,} \PYG{n}{person\PYGZus{}types}\PYG{o}{=}\PYG{k+kc}{None}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    Parse caltech vbb annotation file to dict}
+\PYG{l+s+sd}{    Args:}
+\PYG{l+s+sd}{        vbb\PYGZus{}file: input vbb file path}
+\PYG{l+s+sd}{        cam\PYGZus{}id: camera id}
+\PYG{l+s+sd}{        person\PYGZus{}types: list of person type that will be used (total 4 types: person, person\PYGZhy{}fa, person?, people).}
+\PYG{l+s+sd}{            If None, all will be used:}
+\PYG{l+s+sd}{    Return:}
+\PYG{l+s+sd}{        Annotation info dict with filename as key and anno info as value}
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{splitext}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{basename}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}file}\PYG{p}{))[}\PYG{l+m+mi}{0}\PYG{p}{]}
+    \PYG{n}{annos} \PYG{o}{=} \PYG{n}{defaultdict}\PYG{p}{(}\PYG{n+nb}{dict}\PYG{p}{)}
+    \PYG{n}{vbb} \PYG{o}{=} \PYG{n}{loadmat}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}file}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} object info in each frame: id, pos, occlusion, lock, posv}
+    \PYG{n}{objLists} \PYG{o}{=} \PYG{n}{vbb}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}A\PYGZsq{}}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{1}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]}
+    \PYG{n}{objLbl} \PYG{o}{=} \PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{v}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{])} \PYG{k}{for} \PYG{n}{v} \PYG{o+ow}{in} \PYG{n}{vbb}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}A\PYGZsq{}}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{4}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]]}
+    \PYG{c+c1}{\PYGZsh{} person index}
+    \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{person\PYGZus{}types}\PYG{p}{:}
+        \PYG{n}{person\PYGZus{}types} \PYG{o}{=} \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}person\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}person\PYGZhy{}fa\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}person?\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}people\PYGZdq{}}\PYG{p}{]}
+    \PYG{n}{person\PYGZus{}index\PYGZus{}list} \PYG{o}{=} \PYG{p}{[}\PYG{n}{x} \PYG{k}{for} \PYG{n}{x} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{objLbl}\PYG{p}{))} \PYG{k}{if} \PYG{n}{objLbl}\PYG{p}{[}\PYG{n}{x}\PYG{p}{]} \PYG{o+ow}{in} \PYG{n}{person\PYGZus{}types}\PYG{p}{]}
+    \PYG{k}{for} \PYG{n}{frame\PYGZus{}id}\PYG{p}{,} \PYG{n}{obj} \PYG{o+ow}{in} \PYG{n+nb}{enumerate}\PYG{p}{(}\PYG{n}{objLists}\PYG{p}{):}
+        \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{obj}\PYG{p}{)} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}\PYG{p}{:}
+            \PYG{n}{frame\PYGZus{}name} \PYG{o}{=} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{cam\PYGZus{}id}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZdq{}} \PYG{o}{+} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{frame\PYGZus{}id}\PYG{o}{+}\PYG{l+m+mi}{1}\PYG{p}{)} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}.jpg\PYGZdq{}}
+            \PYG{n}{annos}\PYG{p}{[}\PYG{n}{frame\PYGZus{}name}\PYG{p}{]} \PYG{o}{=} \PYG{n}{defaultdict}\PYG{p}{(}\PYG{n+nb}{list}\PYG{p}{)}
+            \PYG{n}{annos}\PYG{p}{[}\PYG{n}{frame\PYGZus{}name}\PYG{p}{][}\PYG{l+s+s2}{\PYGZdq{}id\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{frame\PYGZus{}name}
+            \PYG{k}{for} \PYG{n}{fid}\PYG{p}{,} \PYG{n}{pos}\PYG{p}{,} \PYG{n}{occl} \PYG{o+ow}{in} \PYG{n+nb}{zip}\PYG{p}{(}\PYG{n}{obj}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}id\PYGZsq{}}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{n}{obj}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}pos\PYGZsq{}}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{n}{obj}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}occl\PYGZsq{}}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{]):}
+                \PYG{n}{fid} \PYG{o}{=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{fid}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{])} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}  \PYG{c+c1}{\PYGZsh{} for matlab start from 1 not 0}
+                \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{fid} \PYG{o+ow}{in} \PYG{n}{person\PYGZus{}index\PYGZus{}list}\PYG{p}{:}  \PYG{c+c1}{\PYGZsh{} only use bbox whose label is given person type}
+                    \PYG{k}{continue}
+                \PYG{n}{annos}\PYG{p}{[}\PYG{n}{frame\PYGZus{}name}\PYG{p}{][}\PYG{l+s+s2}{\PYGZdq{}label\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{objLbl}\PYG{p}{[}\PYG{n}{fid}\PYG{p}{]}
+                \PYG{n}{pos} \PYG{o}{=} \PYG{n}{pos}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{o}{.}\PYG{n}{tolist}\PYG{p}{()}
+                \PYG{n}{occl} \PYG{o}{=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{occl}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+m+mi}{0}\PYG{p}{])}
+                \PYG{n}{annos}\PYG{p}{[}\PYG{n}{frame\PYGZus{}name}\PYG{p}{][}\PYG{l+s+s2}{\PYGZdq{}occlusion\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{occl}\PYG{p}{)}
+                \PYG{n}{annos}\PYG{p}{[}\PYG{n}{frame\PYGZus{}name}\PYG{p}{][}\PYG{l+s+s2}{\PYGZdq{}bbox\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{pos}\PYG{p}{)}
+            \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{annos}\PYG{p}{[}\PYG{n}{frame\PYGZus{}name}\PYG{p}{][}\PYG{l+s+s2}{\PYGZdq{}bbox\PYGZdq{}}\PYG{p}{]:}
+                \PYG{k}{del} \PYG{n}{annos}\PYG{p}{[}\PYG{n}{frame\PYGZus{}name}\PYG{p}{]}
+    \PYG{k}{return} \PYG{n}{annos}
+
+
+\PYG{k}{def} \PYG{n+nf}{seq2img}\PYG{p}{(}\PYG{n}{annos}\PYG{p}{,} \PYG{n}{seq\PYGZus{}file}\PYG{p}{,} \PYG{n}{outdir}\PYG{p}{,} \PYG{n}{cam\PYGZus{}id}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    Extract frames in seq files to given output directories}
+\PYG{l+s+sd}{    Args:}
+\PYG{l+s+sd}{         annos: annos dict returned from parsed vbb file}
+\PYG{l+s+sd}{         seq\PYGZus{}file: seq file path}
+\PYG{l+s+sd}{         outdir: frame save dir}
+\PYG{l+s+sd}{         cam\PYGZus{}id: camera id}
+\PYG{l+s+sd}{    Returns:}
+\PYG{l+s+sd}{        camera captured image size}
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{cap} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{VideoCapture}\PYG{p}{(}\PYG{n}{seq\PYGZus{}file}\PYG{p}{)}
+    \PYG{n}{index} \PYG{o}{=} \PYG{l+m+mi}{1}
+    \PYG{c+c1}{\PYGZsh{} captured frame list}
+    \PYG{n}{v\PYGZus{}id} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{splitext}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{basename}\PYG{p}{(}\PYG{n}{seq\PYGZus{}file}\PYG{p}{))[}\PYG{l+m+mi}{0}\PYG{p}{]}
+    \PYG{n}{cap\PYGZus{}frames\PYGZus{}index} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{sort}\PYG{p}{([}\PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{splitext}\PYG{p}{(}\PYG{n+nb}{id}\PYG{p}{)[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{o}{.}\PYG{n}{split}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZdq{}}\PYG{p}{)[}\PYG{l+m+mi}{2}\PYG{p}{])} \PYG{k}{for} \PYG{n+nb}{id} \PYG{o+ow}{in} \PYG{n}{annos}\PYG{o}{.}\PYG{n}{keys}\PYG{p}{()])}
+    \PYG{k}{while} \PYG{k+kc}{True}\PYG{p}{:}
+        \PYG{n}{ret}\PYG{p}{,} \PYG{n}{frame} \PYG{o}{=} \PYG{n}{cap}\PYG{o}{.}\PYG{n}{read}\PYG{p}{()}
+        \PYG{k}{if} \PYG{n}{ret}\PYG{p}{:}
+            \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{index} \PYG{o+ow}{in} \PYG{n}{cap\PYGZus{}frames\PYGZus{}index}\PYG{p}{:}
+                \PYG{n}{index} \PYG{o}{+=} \PYG{l+m+mi}{1}
+                \PYG{k}{continue}
+            \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{outdir}\PYG{p}{):}
+                \PYG{n}{os}\PYG{o}{.}\PYG{n}{makedirs}\PYG{p}{(}\PYG{n}{outdir}\PYG{p}{)}
+            \PYG{n}{outname} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{outdir}\PYG{p}{,} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{cam\PYGZus{}id}\PYG{p}{)}\PYG{o}{+}\PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZdq{}}\PYG{o}{+}\PYG{n}{v\PYGZus{}id}\PYG{o}{+}\PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZdq{}}\PYG{o}{+}\PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{index}\PYG{p}{)}\PYG{o}{+}\PYG{l+s+s2}{\PYGZdq{}.jpg\PYGZdq{}}\PYG{p}{)}
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Current frame: \PYGZdq{}}\PYG{p}{,} \PYG{n}{v\PYGZus{}id}\PYG{p}{,} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{index}\PYG{p}{))}
+            \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imwrite}\PYG{p}{(}\PYG{n}{outname}\PYG{p}{,} \PYG{n}{frame}\PYG{p}{)}
+            \PYG{n}{height}\PYG{p}{,} \PYG{n}{width}\PYG{p}{,} \PYG{n}{\PYGZus{}} \PYG{o}{=} \PYG{n}{frame}\PYG{o}{.}\PYG{n}{shape}
+        \PYG{k}{else}\PYG{p}{:}
+            \PYG{k}{break}
+        \PYG{n}{index} \PYG{o}{+=} \PYG{l+m+mi}{1}
+    \PYG{n}{img\PYGZus{}size} \PYG{o}{=} \PYG{p}{(}\PYG{n}{width}\PYG{p}{,} \PYG{n}{height}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{img\PYGZus{}size}
+
+
+\PYG{k}{def} \PYG{n+nf}{instance2xml\PYGZus{}base}\PYG{p}{(}\PYG{n}{anno}\PYG{p}{,} \PYG{n}{img\PYGZus{}size}\PYG{p}{,} \PYG{n}{bbox\PYGZus{}type}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}xyxy\PYGZsq{}}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    Parse annotation data to VOC XML format}
+\PYG{l+s+sd}{    Args:}
+\PYG{l+s+sd}{        anno: annotation info returned by vbb\PYGZus{}anno2dict function}
+\PYG{l+s+sd}{        img\PYGZus{}size: camera captured image size}
+\PYG{l+s+sd}{        bbox\PYGZus{}type: bbox coordinate record format: xyxy (xmin, ymin, xmax, ymax); xywh (xmin, ymin, width, height)}
+\PYG{l+s+sd}{    Returns:}
+\PYG{l+s+sd}{        Annotation xml info tree}
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{k}{assert} \PYG{n}{bbox\PYGZus{}type} \PYG{o+ow}{in} \PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}xyxy\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}xywh\PYGZsq{}}\PYG{p}{]}
+    \PYG{n}{E} \PYG{o}{=} \PYG{n}{objectify}\PYG{o}{.}\PYG{n}{ElementMaker}\PYG{p}{(}\PYG{n}{annotate}\PYG{o}{=}\PYG{k+kc}{False}\PYG{p}{)}
+    \PYG{n}{anno\PYGZus{}tree} \PYG{o}{=} \PYG{n}{E}\PYG{o}{.}\PYG{n}{annotation}\PYG{p}{(}
+        \PYG{n}{E}\PYG{o}{.}\PYG{n}{folder}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}VOC2014\PYGZus{}instance/person\PYGZsq{}}\PYG{p}{),}
+        \PYG{n}{E}\PYG{o}{.}\PYG{n}{filename}\PYG{p}{(}\PYG{n}{anno}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}id\PYGZsq{}}\PYG{p}{]),}
+        \PYG{n}{E}\PYG{o}{.}\PYG{n}{source}\PYG{p}{(}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{database}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}Caltech pedestrian\PYGZsq{}}\PYG{p}{),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{annotation}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}Caltech pedestrian\PYGZsq{}}\PYG{p}{),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{image}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}Caltech pedestrian\PYGZsq{}}\PYG{p}{),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{url}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}None\PYGZsq{}}\PYG{p}{)}
+        \PYG{p}{),}
+        \PYG{n}{E}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{width}\PYG{p}{(}\PYG{n}{img\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{height}\PYG{p}{(}\PYG{n}{img\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{depth}\PYG{p}{(}\PYG{l+m+mi}{3}\PYG{p}{)}
+        \PYG{p}{),}
+        \PYG{n}{E}\PYG{o}{.}\PYG{n}{segmented}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),}
+    \PYG{p}{)}
+    \PYG{k}{for} \PYG{n}{index}\PYG{p}{,} \PYG{n}{bbox} \PYG{o+ow}{in} \PYG{n+nb}{enumerate}\PYG{p}{(}\PYG{n}{anno}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}bbox\PYGZsq{}}\PYG{p}{]):}
+        \PYG{n}{bbox} \PYG{o}{=} \PYG{p}{[}\PYG{n+nb}{float}\PYG{p}{(}\PYG{n}{x}\PYG{p}{)} \PYG{k}{for} \PYG{n}{x} \PYG{o+ow}{in} \PYG{n}{bbox}\PYG{p}{]}
+        \PYG{k}{if} \PYG{n}{bbox\PYGZus{}type} \PYG{o}{==} \PYG{l+s+s1}{\PYGZsq{}xyxy\PYGZsq{}}\PYG{p}{:}
+            \PYG{n}{xmin}\PYG{p}{,} \PYG{n}{ymin}\PYG{p}{,} \PYG{n}{w}\PYG{p}{,} \PYG{n}{h} \PYG{o}{=} \PYG{n}{bbox}
+            \PYG{n}{xmax} \PYG{o}{=} \PYG{n}{xmin}\PYG{o}{+}\PYG{n}{w}
+            \PYG{n}{ymax} \PYG{o}{=} \PYG{n}{ymin}\PYG{o}{+}\PYG{n}{h}
+        \PYG{k}{else}\PYG{p}{:}
+            \PYG{n}{xmin}\PYG{p}{,} \PYG{n}{ymin}\PYG{p}{,} \PYG{n}{xmax}\PYG{p}{,} \PYG{n}{ymax} \PYG{o}{=} \PYG{n}{bbox}
+        \PYG{n}{xmin} \PYG{o}{=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{xmin}\PYG{p}{)}
+        \PYG{n}{ymin} \PYG{o}{=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{ymin}\PYG{p}{)}
+        \PYG{n}{xmax} \PYG{o}{=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{xmax}\PYG{p}{)}
+        \PYG{n}{ymax} \PYG{o}{=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{ymax}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n}{xmin} \PYG{o}{\PYGZlt{}} \PYG{l+m+mi}{0}\PYG{p}{:}
+            \PYG{n}{xmin} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{k}{if} \PYG{n}{xmax} \PYG{o}{\PYGZgt{}} \PYG{n}{img\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{:}
+            \PYG{n}{xmax} \PYG{o}{=} \PYG{n}{img\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}
+        \PYG{k}{if} \PYG{n}{ymin} \PYG{o}{\PYGZlt{}} \PYG{l+m+mi}{0}\PYG{p}{:}
+            \PYG{n}{ymin} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{k}{if} \PYG{n}{ymax} \PYG{o}{\PYGZgt{}} \PYG{n}{img\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{:}
+            \PYG{n}{ymax} \PYG{o}{=} \PYG{n}{img\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}
+        \PYG{k}{if} \PYG{n}{ymax} \PYG{o}{\PYGZlt{}=} \PYG{n}{ymin} \PYG{o+ow}{or} \PYG{n}{xmax} \PYG{o}{\PYGZlt{}=} \PYG{n}{xmin}\PYG{p}{:}
+            \PYG{k}{continue}
+        \PYG{n}{E} \PYG{o}{=} \PYG{n}{objectify}\PYG{o}{.}\PYG{n}{ElementMaker}\PYG{p}{(}\PYG{n}{annotate}\PYG{o}{=}\PYG{k+kc}{False}\PYG{p}{)}
+        \PYG{n}{anno\PYGZus{}tree}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{object}\PYG{p}{(}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{name}\PYG{p}{(}\PYG{n}{anno}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}label\PYGZsq{}}\PYG{p}{]),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{bndbox}\PYG{p}{(}
+                \PYG{n}{E}\PYG{o}{.}\PYG{n}{xmin}\PYG{p}{(}\PYG{n}{xmin}\PYG{p}{),}
+                \PYG{n}{E}\PYG{o}{.}\PYG{n}{ymin}\PYG{p}{(}\PYG{n}{ymin}\PYG{p}{),}
+                \PYG{n}{E}\PYG{o}{.}\PYG{n}{xmax}\PYG{p}{(}\PYG{n}{xmax}\PYG{p}{),}
+                \PYG{n}{E}\PYG{o}{.}\PYG{n}{ymax}\PYG{p}{(}\PYG{n}{ymax}\PYG{p}{)}
+            \PYG{p}{),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{difficult}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),}
+            \PYG{n}{E}\PYG{o}{.}\PYG{n}{occlusion}\PYG{p}{(}\PYG{n}{anno}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}occlusion\PYGZdq{}}\PYG{p}{][}\PYG{n}{index}\PYG{p}{])}
+            \PYG{p}{)}
+        \PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{anno\PYGZus{}tree}
+
+
+\PYG{k}{def} \PYG{n+nf}{parse\PYGZus{}anno\PYGZus{}file}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}inputdir}\PYG{p}{,} \PYG{n}{seq\PYGZus{}inputdir}\PYG{p}{,} \PYG{n}{vbb\PYGZus{}outputdir}\PYG{p}{,} \PYG{n}{seq\PYGZus{}outputdir}\PYG{p}{,} \PYG{n}{person\PYGZus{}types}\PYG{o}{=}\PYG{k+kc}{None}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    Parse Caltech data stored in seq and vbb files to VOC xml format}
+\PYG{l+s+sd}{    Args:}
+\PYG{l+s+sd}{        vbb\PYGZus{}inputdir: vbb file saved pth}
+\PYG{l+s+sd}{        seq\PYGZus{}inputdir: seq file saved path}
+\PYG{l+s+sd}{        vbb\PYGZus{}outputdir: vbb data converted xml file saved path}
+\PYG{l+s+sd}{        seq\PYGZus{}outputdir: seq data converted frame image file saved path}
+\PYG{l+s+sd}{        person\PYGZus{}types: list of person type that will be used (total 4 types: person, person\PYGZhy{}fa, person?, people).}
+\PYG{l+s+sd}{            If None, all will be used:}
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{c+c1}{\PYGZsh{} annotation sub\PYGZhy{}directories in hda annotation input directory}
+    \PYG{k}{assert} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}inputdir}\PYG{p}{)}
+    \PYG{n}{sub\PYGZus{}dirs} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{listdir}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}inputdir}\PYG{p}{)}
+    \PYG{k}{for} \PYG{n}{sub\PYGZus{}dir} \PYG{o+ow}{in} \PYG{n}{sub\PYGZus{}dirs}\PYG{p}{:}
+        \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Parsing annotations of camera: \PYGZdq{}}\PYG{p}{,} \PYG{n}{sub\PYGZus{}dir}\PYG{p}{)}
+        \PYG{n}{cam\PYGZus{}id} \PYG{o}{=} \PYG{n}{sub\PYGZus{}dir}
+        \PYG{n}{vbb\PYGZus{}files} \PYG{o}{=} \PYG{n}{glob}\PYG{o}{.}\PYG{n}{glob}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}inputdir}\PYG{p}{,} \PYG{n}{sub\PYGZus{}dir}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}*.vbb\PYGZdq{}}\PYG{p}{))}
+        \PYG{k}{for} \PYG{n}{vbb\PYGZus{}file} \PYG{o+ow}{in} \PYG{n}{vbb\PYGZus{}files}\PYG{p}{:}
+            \PYG{n}{annos} \PYG{o}{=} \PYG{n}{vbb\PYGZus{}anno2dict}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}file}\PYG{p}{,} \PYG{n}{cam\PYGZus{}id}\PYG{p}{,} \PYG{n}{person\PYGZus{}types}\PYG{o}{=}\PYG{n}{person\PYGZus{}types}\PYG{p}{)}
+            \PYG{k}{if} \PYG{n}{annos}\PYG{p}{:}
+                \PYG{n}{vbb\PYGZus{}outdir} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}outputdir}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}annotations\PYGZdq{}}\PYG{p}{,} \PYG{n}{sub\PYGZus{}dir}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}bbox\PYGZdq{}}\PYG{p}{)}
+                \PYG{c+c1}{\PYGZsh{} extract frames from seq}
+                \PYG{n}{seq\PYGZus{}file} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{seq\PYGZus{}inputdir}\PYG{p}{,} \PYG{n}{sub\PYGZus{}dir}\PYG{p}{,} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{splitext}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{basename}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}file}\PYG{p}{))[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{o}{+}\PYG{l+s+s2}{\PYGZdq{}.seq\PYGZdq{}}\PYG{p}{)}
+                \PYG{n}{seq\PYGZus{}outdir} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{seq\PYGZus{}outputdir}\PYG{p}{,} \PYG{n}{sub\PYGZus{}dir}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}frame\PYGZdq{}}\PYG{p}{)}
+                \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}outdir}\PYG{p}{):}
+                    \PYG{n}{os}\PYG{o}{.}\PYG{n}{makedirs}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}outdir}\PYG{p}{)}
+                \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{seq\PYGZus{}outdir}\PYG{p}{):}
+                    \PYG{n}{os}\PYG{o}{.}\PYG{n}{makedirs}\PYG{p}{(}\PYG{n}{seq\PYGZus{}outdir}\PYG{p}{)}
+                \PYG{n}{img\PYGZus{}size} \PYG{o}{=} \PYG{n}{seq2img}\PYG{p}{(}\PYG{n}{annos}\PYG{p}{,} \PYG{n}{seq\PYGZus{}file}\PYG{p}{,} \PYG{n}{seq\PYGZus{}outdir}\PYG{p}{,} \PYG{n}{cam\PYGZus{}id}\PYG{p}{)}
+                \PYG{k}{for} \PYG{n}{filename}\PYG{p}{,} \PYG{n}{anno} \PYG{o+ow}{in} \PYG{n+nb}{sorted}\PYG{p}{(}\PYG{n}{annos}\PYG{o}{.}\PYG{n}{items}\PYG{p}{(),} \PYG{n}{key}\PYG{o}{=}\PYG{k}{lambda} \PYG{n}{x}\PYG{p}{:} \PYG{n}{x}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]):}
+                    \PYG{k}{if} \PYG{l+s+s2}{\PYGZdq{}bbox\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{anno}\PYG{p}{:}
+                        \PYG{n}{anno\PYGZus{}tree} \PYG{o}{=} \PYG{n}{instance2xml\PYGZus{}base}\PYG{p}{(}\PYG{n}{anno}\PYG{p}{,} \PYG{n}{img\PYGZus{}size}\PYG{p}{)}
+                        \PYG{n}{outfile} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}outdir}\PYG{p}{,} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{splitext}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{)[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{o}{+}\PYG{l+s+s2}{\PYGZdq{}.xml\PYGZdq{}}\PYG{p}{)}
+                        \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Generating annotation xml file of picture: \PYGZdq{}}\PYG{p}{,} \PYG{n}{filename}\PYG{p}{)}
+                        \PYG{n}{etree}\PYG{o}{.}\PYG{n}{ElementTree}\PYG{p}{(}\PYG{n}{anno\PYGZus{}tree}\PYG{p}{)}\PYG{o}{.}\PYG{n}{write}\PYG{p}{(}\PYG{n}{outfile}\PYG{p}{,} \PYG{n}{pretty\PYGZus{}print}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{)}
+
+\PYG{k}{def} \PYG{n+nf}{main}\PYG{p}{():}
+    \PYG{n}{seq\PYGZus{}dir} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}../Pedestrian\PYGZhy{}Detection/datasets/caltech\PYGZus{}raw/Test\PYGZdq{}}
+    \PYG{n}{vbb\PYGZus{}dir} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}../Pedestrian\PYGZhy{}Detection/datasets/caltech\PYGZus{}raw/annotations/Test\PYGZdq{}}
+    \PYG{n}{out\PYGZus{}dir} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}../Pedestrian\PYGZhy{}Detection/datasets/caltech\PYGZus{}parsed/Test\PYGZdq{}}
+    \PYG{n}{frame\PYGZus{}out} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{out\PYGZus{}dir}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}frame\PYGZdq{}}\PYG{p}{)}
+    \PYG{n}{anno\PYGZus{}out} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{out\PYGZus{}dir}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}annotation\PYGZdq{}}\PYG{p}{)}
+    \PYG{n}{person\PYGZus{}type} \PYG{o}{=} \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}person\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}people\PYGZdq{}}\PYG{p}{]}
+    \PYG{n}{parse\PYGZus{}anno\PYGZus{}file}\PYG{p}{(}\PYG{n}{vbb\PYGZus{}dir}\PYG{p}{,} \PYG{n}{seq\PYGZus{}dir}\PYG{p}{,} \PYG{n}{frame\PYGZus{}out}\PYG{p}{,} \PYG{n}{anno\PYGZus{}out}\PYG{p}{,} \PYG{n}{person\PYGZus{}type}\PYG{p}{)}
+\end{Verbatim}

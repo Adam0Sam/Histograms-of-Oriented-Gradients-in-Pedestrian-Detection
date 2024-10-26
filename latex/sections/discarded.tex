@@ -1,0 +1,7 @@
+Detection and classification tasks can be seen as balancing missed detections (false negatives) and false alarms (false positives) \cite{martin1997det}. Introduced in 1997 by A. Martin et Al, the Detection Error Tradeoff (DET) curve expresses the balance between the two types of errors by plotting the the false positive rate ($FPR$) against the false negative rate ($FNR$) at varying confidence threshold values \cite{martin1997det} and, usually, on a per window basis \cite{dalal_2005_histograms} \cite{dollar_2012_pedestrian}. DET curves are seen as more advantageuous to the otherwise popular Receiver Operating Characteristic (ROC) curves (which plot $FPR$ against the true positive rate, where $TP=1-FN=\frac{TP}{TP+FN}$) because DET often produces approximately linear curves, making it easier to visually distuingish the performance of systems.
+
+
+
+In spite of this advantage, ROC curves are used in this investigation precisely because ROC comes with an associated standard another associated standard of expressing the area under the curve (ROC AUC) as an evaluation metric which is easy to display in a table with many rows. 
+
+Beyond the balance between $FP$ and $TP$ there is also the balance between Precision (accuracy of positive predictions, or $\frac{TP}{TP+FP}$) and the true positive rate $TP$, also called Recall. As such ROC AUC completely disregards precision and because of this 

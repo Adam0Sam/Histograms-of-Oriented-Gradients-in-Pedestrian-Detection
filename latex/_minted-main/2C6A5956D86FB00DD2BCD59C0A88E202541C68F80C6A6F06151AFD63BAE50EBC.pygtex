@@ -1,0 +1,280 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import} \PYG{n+nn}{cv2}
+\PYG{k+kn}{import} \PYG{n+nn}{numpy} \PYG{k}{as} \PYG{n+nn}{np}
+\PYG{k+kn}{import} \PYG{n+nn}{os}
+\PYG{k+kn}{from} \PYG{n+nn}{sklearn.model\PYGZus{}selection} \PYG{k+kn}{import} \PYG{n}{train\PYGZus{}test\PYGZus{}split}
+\PYG{k+kn}{from} \PYG{n+nn}{tqdm} \PYG{k+kn}{import} \PYG{n}{tqdm}
+\PYG{k+kn}{import} \PYG{n+nn}{random}
+
+\PYG{n}{window\PYGZus{}sizes} \PYG{o}{=} \PYG{p}{[(}\PYG{l+m+mi}{128}\PYG{p}{,} \PYG{l+m+mi}{64}\PYG{p}{),} \PYG{p}{(}\PYG{l+m+mi}{112}\PYG{p}{,} \PYG{l+m+mi}{48}\PYG{p}{),} \PYG{p}{(}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{50}\PYG{p}{),} \PYG{p}{(}\PYG{l+m+mi}{128}\PYG{p}{,} \PYG{l+m+mi}{96}\PYG{p}{)]}
+
+\PYG{k}{class} \PYG{n+nc}{SampleCount}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{pos\PYGZus{}count}\PYG{p}{,} \PYG{n}{neg\PYGZus{}count}\PYG{p}{):}
+\PYG{+w}{        }\PYG{l+s+sd}{\PYGZsq{}\PYGZsq{}\PYGZsq{}}
+\PYG{l+s+sd}{        Initialize the SampleCount object.}
+
+\PYG{l+s+sd}{        Parameters:}
+\PYG{l+s+sd}{        \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{        pos\PYGZus{}count : int}
+\PYG{l+s+sd}{            The number of positive samples.}
+
+\PYG{l+s+sd}{        neg\PYGZus{}count : int}
+\PYG{l+s+sd}{            The number of negative samples.}
+\PYG{l+s+sd}{        \PYGZsq{}\PYGZsq{}\PYGZsq{}}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{pos} \PYG{o}{=} \PYG{n}{pos\PYGZus{}count}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{neg} \PYG{o}{=} \PYG{n}{neg\PYGZus{}count}
+
+\PYG{k}{class} \PYG{n+nc}{LabeledDataSet}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{points}\PYG{p}{,} \PYG{n}{labels}\PYG{p}{,} \PYG{n}{sample\PYGZus{}count}\PYG{p}{:} \PYG{n}{SampleCount}\PYG{p}{):}
+\PYG{+w}{        }\PYG{l+s+sd}{\PYGZsq{}\PYGZsq{}\PYGZsq{}}
+\PYG{l+s+sd}{        Initialize the LabeledDataSet object.}
+
+\PYG{l+s+sd}{        Parameters:}
+\PYG{l+s+sd}{        \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{        points : np.ndarray}
+\PYG{l+s+sd}{            The data points (images) in the dataset.}
+
+\PYG{l+s+sd}{        labels : np.ndarray}
+\PYG{l+s+sd}{            The corresponding labels for the data points.}
+
+\PYG{l+s+sd}{        sample\PYGZus{}count : SampleCount}
+\PYG{l+s+sd}{            An object containing the counts of positive and negative samples.}
+\PYG{l+s+sd}{        \PYGZsq{}\PYGZsq{}\PYGZsq{}}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{points} \PYG{o}{=} \PYG{n}{points}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{labels} \PYG{o}{=} \PYG{n}{labels}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{sample\PYGZus{}count} \PYG{o}{=} \PYG{n}{sample\PYGZus{}count}
+
+\PYG{k}{def} \PYG{n+nf}{parse\PYGZus{}pascal\PYGZus{}voc\PYGZus{}annotations}\PYG{p}{(}\PYG{n}{file\PYGZus{}name}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZsq{}\PYGZsq{}\PYGZsq{}}
+\PYG{l+s+sd}{    Parse Pascal VOC annotations from an XML file.}
+
+\PYG{l+s+sd}{    Parameters:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    file\PYGZus{}name : str}
+\PYG{l+s+sd}{        The path to the annotation XML file.}
+
+\PYG{l+s+sd}{    Returns:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    list}
+\PYG{l+s+sd}{        A list of bounding boxes, each represented as a list of integers [xmin, ymin, xmax, ymax].}
+\PYG{l+s+sd}{    \PYGZsq{}\PYGZsq{}\PYGZsq{}}
+    \PYG{k+kn}{import} \PYG{n+nn}{xml.etree.ElementTree} \PYG{k}{as} \PYG{n+nn}{ET}
+    \PYG{n}{tree} \PYG{o}{=} \PYG{n}{ET}\PYG{o}{.}\PYG{n}{parse}\PYG{p}{(}\PYG{n}{file\PYGZus{}name}\PYG{p}{)}
+    \PYG{n}{root} \PYG{o}{=} \PYG{n}{tree}\PYG{o}{.}\PYG{n}{getroot}\PYG{p}{()}
+    \PYG{n}{bbox} \PYG{o}{=} \PYG{p}{[]}
+
+    \PYG{k}{for} \PYG{n}{obj} \PYG{o+ow}{in} \PYG{n}{root}\PYG{o}{.}\PYG{n}{findall}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}object\PYGZsq{}}\PYG{p}{):}
+        \PYG{n}{bndbox} \PYG{o}{=} \PYG{n}{obj}\PYG{o}{.}\PYG{n}{find}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}bndbox\PYGZsq{}}\PYG{p}{)}
+        \PYG{n}{bbox}\PYG{o}{.}\PYG{n}{append}\PYG{p}{([}
+            \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{bndbox}\PYG{o}{.}\PYG{n}{find}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}xmin\PYGZsq{}}\PYG{p}{)}\PYG{o}{.}\PYG{n}{text}\PYG{p}{),}
+            \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{bndbox}\PYG{o}{.}\PYG{n}{find}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}ymin\PYGZsq{}}\PYG{p}{)}\PYG{o}{.}\PYG{n}{text}\PYG{p}{),}
+            \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{bndbox}\PYG{o}{.}\PYG{n}{find}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}xmax\PYGZsq{}}\PYG{p}{)}\PYG{o}{.}\PYG{n}{text}\PYG{p}{),}
+            \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{bndbox}\PYG{o}{.}\PYG{n}{find}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}ymax\PYGZsq{}}\PYG{p}{)}\PYG{o}{.}\PYG{n}{text}\PYG{p}{)}
+        \PYG{p}{])}
+    \PYG{k}{return} \PYG{n}{bbox}
+
+
+\PYG{k}{def} \PYG{n+nf}{prepare\PYGZus{}labeled\PYGZus{}datasets}\PYG{p}{(}\PYG{n}{image\PYGZus{}folder}\PYG{p}{,} \PYG{n}{window\PYGZus{}size}\PYG{p}{,} \PYG{n}{test\PYGZus{}size}\PYG{o}{=}\PYG{l+m+mf}{0.2}\PYG{p}{,} \PYG{n}{random\PYGZus{}state}\PYG{o}{=}\PYG{l+m+mi}{42}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZsq{}\PYGZsq{}\PYGZsq{}}
+\PYG{l+s+sd}{    Prepare labeled datasets for training and testing.}
+
+\PYG{l+s+sd}{    Parameters:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    image\PYGZus{}folder : str}
+\PYG{l+s+sd}{        The path to the folder containing images and annotations.}
+
+\PYG{l+s+sd}{    window\PYGZus{}size : tuple}
+\PYG{l+s+sd}{        The size of the sliding window for sample extraction.}
+
+\PYG{l+s+sd}{    test\PYGZus{}size : float}
+\PYG{l+s+sd}{        The proportion of the dataset to include in the test split (default is 0.2).}
+
+\PYG{l+s+sd}{    random\PYGZus{}state : int}
+\PYG{l+s+sd}{        Random seed for reproducibility (default is 42).}
+
+\PYG{l+s+sd}{    Returns:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    LabeledDataSet, LabeledDataSet}
+\PYG{l+s+sd}{        The training and testing labeled datasets.}
+\PYG{l+s+sd}{    \PYGZsq{}\PYGZsq{}\PYGZsq{}}
+    \PYG{n}{image\PYGZus{}dir} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{image\PYGZus{}folder}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}frame\PYGZdq{}}\PYG{p}{)}
+    \PYG{n}{annotation\PYGZus{}dir} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{image\PYGZus{}folder}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}annotations\PYGZdq{}}\PYG{p}{)}
+
+    \PYG{n}{image\PYGZus{}subdirs} \PYG{o}{=} \PYG{p}{[}
+        \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{image\PYGZus{}dir}\PYG{p}{,} \PYG{n}{subdir}\PYG{p}{)}
+        \PYG{k}{for} \PYG{n}{subdir} \PYG{o+ow}{in} \PYG{n}{os}\PYG{o}{.}\PYG{n}{listdir}\PYG{p}{(}\PYG{n}{image\PYGZus{}dir}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{isdir}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{image\PYGZus{}dir}\PYG{p}{,} \PYG{n}{subdir}\PYG{p}{))}
+    \PYG{p}{]}
+    \PYG{n}{images} \PYG{o}{=} \PYG{p}{[}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{subdir}\PYG{p}{,} \PYG{n}{file}\PYG{p}{)} \PYG{k}{for} \PYG{n}{subdir} \PYG{o+ow}{in} \PYG{n}{image\PYGZus{}subdirs} \PYG{k}{for} \PYG{n}{file} \PYG{o+ow}{in} \PYG{n}{os}\PYG{o}{.}\PYG{n}{listdir}\PYG{p}{(}\PYG{n}{subdir}\PYG{p}{)} \PYG{k}{if}
+              \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{isfile}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{subdir}\PYG{p}{,} \PYG{n}{file}\PYG{p}{))]}
+
+
+    \PYG{n}{train\PYGZus{}images}\PYG{p}{,} \PYG{n}{test\PYGZus{}images} \PYG{o}{=} \PYG{n}{train\PYGZus{}test\PYGZus{}split}\PYG{p}{(}\PYG{n}{images}\PYG{p}{,} \PYG{n}{test\PYGZus{}size}\PYG{o}{=}\PYG{n}{test\PYGZus{}size}\PYG{p}{,} \PYG{n}{random\PYGZus{}state}\PYG{o}{=}\PYG{n}{random\PYGZus{}state}\PYG{p}{)}
+
+    \PYG{k}{def} \PYG{n+nf}{process\PYGZus{}images}\PYG{p}{(}\PYG{n}{image\PYGZus{}list}\PYG{p}{):}
+        \PYG{n}{data\PYGZus{}points} \PYG{o}{=} \PYG{p}{[]}
+        \PYG{n}{labels} \PYG{o}{=} \PYG{p}{[]}
+        \PYG{n}{num\PYGZus{}pos} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n}{num\PYGZus{}neg} \PYG{o}{=} \PYG{l+m+mi}{0}
+
+        \PYG{k}{for} \PYG{n}{num}\PYG{p}{,} \PYG{n}{image\PYGZus{}file\PYGZus{}location} \PYG{o+ow}{in} \PYG{n+nb}{enumerate}\PYG{p}{(}\PYG{n}{tqdm}\PYG{p}{(}\PYG{n}{image\PYGZus{}list}\PYG{p}{)):}
+            \PYG{n}{image} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{imread}\PYG{p}{(}\PYG{n}{image\PYGZus{}file\PYGZus{}location}\PYG{p}{)}
+
+            \PYG{n}{partial\PYGZus{}location} \PYG{o}{=} \PYG{n}{image\PYGZus{}file\PYGZus{}location}\PYG{o}{.}\PYG{n}{split}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{sep}\PYG{p}{)[}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{2}\PYG{p}{:]}
+            \PYG{n}{annotation\PYGZus{}file\PYGZus{}location} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}
+                \PYG{n}{annotation\PYGZus{}dir}\PYG{p}{,}
+                \PYG{l+s+s2}{\PYGZdq{}/\PYGZdq{}}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n+nb}{map}\PYG{p}{(}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{partial\PYGZus{}location}\PYG{p}{))}
+            \PYG{p}{)[:}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{4}\PYG{p}{]}
+
+            \PYG{k}{if} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{annotation\PYGZus{}file\PYGZus{}location} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}.xml\PYGZdq{}}\PYG{p}{):}
+                \PYG{n}{bbox\PYGZus{}arr} \PYG{o}{=} \PYG{n}{parse\PYGZus{}pascal\PYGZus{}voc\PYGZus{}annotations}\PYG{p}{(}\PYG{n}{annotation\PYGZus{}file\PYGZus{}location} \PYG{o}{+} \PYG{l+s+s2}{\PYGZdq{}.xml\PYGZdq{}}\PYG{p}{)}
+            \PYG{k}{else}\PYG{p}{:}
+                \PYG{k}{raise} \PYG{n+ne}{Exception}\PYG{p}{(}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}Annotation file }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{annotation\PYGZus{}file\PYGZus{}location}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{ not found\PYGZdq{}}\PYG{p}{)}
+
+            \PYG{k}{for} \PYG{n}{\PYGZus{}} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{l+m+mi}{3}\PYG{p}{):}
+                \PYG{n}{h}\PYG{p}{,} \PYG{n}{w} \PYG{o}{=} \PYG{n}{image}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[:}\PYG{l+m+mi}{2}\PYG{p}{]}
+
+                \PYG{k}{if} \PYG{n}{h} \PYG{o}{\PYGZgt{}} \PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o+ow}{or} \PYG{n}{w} \PYG{o}{\PYGZgt{}} \PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]:}
+                    \PYG{n}{h} \PYG{o}{=} \PYG{n}{h} \PYG{o}{\PYGZhy{}} \PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}
+                    \PYG{n}{w} \PYG{o}{=} \PYG{n}{w} \PYG{o}{\PYGZhy{}} \PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}
+                    \PYG{n}{max\PYGZus{}loop} \PYG{o}{=} \PYG{l+m+mi}{0}
+                    \PYG{n}{overlap} \PYG{o}{=} \PYG{p}{[]}
+                    \PYG{n}{new\PYGZus{}window} \PYG{o}{=} \PYG{p}{[]}
+                    \PYG{k}{for} \PYG{n}{\PYGZus{}} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{l+m+mi}{10}\PYG{p}{):}
+                        \PYG{n}{x} \PYG{o}{=} \PYG{n}{random}\PYG{o}{.}\PYG{n}{randint}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{w}\PYG{p}{)}
+                        \PYG{n}{y} \PYG{o}{=} \PYG{n}{random}\PYG{o}{.}\PYG{n}{randint}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{h}\PYG{p}{)}
+                        \PYG{n}{overlap} \PYG{o}{=} \PYG{p}{[}\PYG{k+kc}{True} \PYG{k}{for} \PYG{n}{i} \PYG{o+ow}{in} \PYG{n}{bbox\PYGZus{}arr}\PYG{p}{]}
+                        \PYG{n}{new\PYGZus{}window} \PYG{o}{=} \PYG{p}{[}\PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{x} \PYG{o}{+} \PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n}{y} \PYG{o}{+} \PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]]}
+
+                        \PYG{k}{for} \PYG{n}{index}\PYG{p}{,} \PYG{n}{bbox} \PYG{o+ow}{in} \PYG{n+nb}{enumerate}\PYG{p}{(}\PYG{n}{bbox\PYGZus{}arr}\PYG{p}{):}
+                            \PYG{n}{dx} \PYG{o}{=} \PYG{n+nb}{min}\PYG{p}{(}\PYG{n}{bbox}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{],} \PYG{n}{new\PYGZus{}window}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{])} \PYG{o}{\PYGZhy{}} \PYG{n+nb}{max}\PYG{p}{(}\PYG{n}{bbox}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{n}{new\PYGZus{}window}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{])}
+                            \PYG{n}{dy} \PYG{o}{=} \PYG{n+nb}{min}\PYG{p}{(}\PYG{n}{bbox}\PYG{p}{[}\PYG{l+m+mi}{3}\PYG{p}{],} \PYG{n}{new\PYGZus{}window}\PYG{p}{[}\PYG{l+m+mi}{3}\PYG{p}{])} \PYG{o}{\PYGZhy{}} \PYG{n+nb}{max}\PYG{p}{(}\PYG{n}{bbox}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n}{new\PYGZus{}window}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{])}
+                            \PYG{k}{if} \PYG{n}{dx} \PYG{o}{\PYGZlt{}=} \PYG{l+m+mi}{0} \PYG{o+ow}{or} \PYG{n}{dy} \PYG{o}{\PYGZlt{}=} \PYG{l+m+mi}{0}\PYG{p}{:}
+                                \PYG{n}{overlap}\PYG{p}{[}\PYG{n}{index}\PYG{p}{]} \PYG{o}{=} \PYG{k+kc}{False}
+                        \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{np}\PYG{o}{.}\PYG{n}{any}\PYG{p}{(}\PYG{n}{overlap}\PYG{p}{):}
+                            \PYG{k}{break}
+                    \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{np}\PYG{o}{.}\PYG{n}{any}\PYG{p}{(}\PYG{n}{overlap}\PYG{p}{):}
+                        \PYG{n}{img} \PYG{o}{=} \PYG{n}{image}\PYG{p}{[}\PYG{n}{window}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]:}\PYG{n}{window}\PYG{p}{[}\PYG{l+m+mi}{3}\PYG{p}{],} \PYG{n}{window}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]:}\PYG{n}{window}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{]]}
+                        \PYG{n}{data\PYGZus{}points}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{img}\PYG{p}{)}
+                        \PYG{n}{labels}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)}
+                        \PYG{n}{num\PYGZus{}neg} \PYG{o}{+=} \PYG{l+m+mi}{1}
+
+            \PYG{c+c1}{\PYGZsh{} Process positive samples (bounding boxes)}
+            \PYG{k}{for} \PYG{n}{box} \PYG{o+ow}{in} \PYG{n}{bbox\PYGZus{}arr}\PYG{p}{:}
+                \PYG{n}{upper\PYGZus{}random\PYGZus{}boundary} \PYG{o}{=} \PYG{n}{random}\PYG{o}{.}\PYG{n}{randint}\PYG{p}{(}\PYG{l+m+mi}{5}\PYG{p}{,}\PYG{l+m+mi}{20}\PYG{p}{)}
+                \PYG{n}{pad\PYGZus{}left} \PYG{o}{=} \PYG{n}{random}\PYG{o}{.}\PYG{n}{randint}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{upper\PYGZus{}random\PYGZus{}boundary}\PYG{p}{)}
+                \PYG{n}{pad\PYGZus{}right} \PYG{o}{=} \PYG{n}{random}\PYG{o}{.}\PYG{n}{randint}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{upper\PYGZus{}random\PYGZus{}boundary}\PYG{p}{)}
+                \PYG{n}{pad\PYGZus{}top} \PYG{o}{=} \PYG{n}{random}\PYG{o}{.}\PYG{n}{randint}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{upper\PYGZus{}random\PYGZus{}boundary}\PYG{p}{)}
+                \PYG{n}{pad\PYGZus{}bottom} \PYG{o}{=} \PYG{n}{random}\PYG{o}{.}\PYG{n}{randint}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{upper\PYGZus{}random\PYGZus{}boundary}\PYG{p}{)}
+                \PYG{n}{x1} \PYG{o}{=} \PYG{n}{box}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{+} \PYG{n}{pad\PYGZus{}left}
+                \PYG{n}{y1} \PYG{o}{=} \PYG{n}{box}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]} \PYG{o}{+} \PYG{n}{pad\PYGZus{}top}
+                \PYG{n}{x2} \PYG{o}{=} \PYG{n}{box}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{n}{pad\PYGZus{}right}
+                \PYG{n}{y2} \PYG{o}{=} \PYG{n}{box}\PYG{p}{[}\PYG{l+m+mi}{3}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{n}{pad\PYGZus{}bottom}
+                \PYG{k}{if} \PYG{n}{x1} \PYG{o}{\PYGZgt{}} \PYG{n}{x2}\PYG{p}{:}
+                    \PYG{n}{x2} \PYG{o}{=} \PYG{n+nb}{min}\PYG{p}{(}\PYG{n}{image}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n}{box}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{]} \PYG{o}{+} \PYG{n}{pad\PYGZus{}left}\PYG{p}{)}
+                \PYG{k}{if} \PYG{n}{y1} \PYG{o}{\PYGZgt{}} \PYG{n}{y2}\PYG{p}{:}
+                    \PYG{n}{y2} \PYG{o}{=} \PYG{n+nb}{min}\PYG{p}{(}\PYG{n}{image}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{],}\PYG{n}{box}\PYG{p}{[}\PYG{l+m+mi}{3}\PYG{p}{]}\PYG{o}{+}\PYG{n}{pad\PYGZus{}top}\PYG{p}{)}
+                \PYG{n}{img} \PYG{o}{=} \PYG{n}{image}\PYG{p}{[}\PYG{n}{y1}\PYG{p}{:}\PYG{n}{y2}\PYG{p}{,} \PYG{n}{x1}\PYG{p}{:}\PYG{n}{x2}\PYG{p}{]}
+                \PYG{n}{img\PYGZus{}resized} \PYG{o}{=} \PYG{n}{cv2}\PYG{o}{.}\PYG{n}{resize}\PYG{p}{(}\PYG{n}{img}\PYG{p}{,} \PYG{p}{(}\PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]))}
+                \PYG{n}{data\PYGZus{}points}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{img\PYGZus{}resized}\PYG{p}{)}
+                \PYG{n}{labels}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{)}
+                \PYG{n}{num\PYGZus{}pos} \PYG{o}{+=} \PYG{l+m+mi}{1}
+
+
+        \PYG{k}{return} \PYG{n}{data\PYGZus{}points}\PYG{p}{,} \PYG{n}{labels}\PYG{p}{,} \PYG{n}{num\PYGZus{}pos}\PYG{p}{,} \PYG{n}{num\PYGZus{}neg}
+
+    \PYG{n}{train\PYGZus{}data}\PYG{p}{,} \PYG{n}{train\PYGZus{}labels}\PYG{p}{,} \PYG{n}{train\PYGZus{}pos}\PYG{p}{,} \PYG{n}{train\PYGZus{}neg} \PYG{o}{=} \PYG{n}{process\PYGZus{}images}\PYG{p}{(}\PYG{n}{train\PYGZus{}images}\PYG{p}{)}
+    \PYG{n}{test\PYGZus{}data}\PYG{p}{,} \PYG{n}{test\PYGZus{}labels}\PYG{p}{,} \PYG{n}{test\PYGZus{}pos}\PYG{p}{,} \PYG{n}{test\PYGZus{}neg} \PYG{o}{=} \PYG{n}{process\PYGZus{}images}\PYG{p}{(}\PYG{n}{test\PYGZus{}images}\PYG{p}{)}
+
+
+    \PYG{n}{labeled\PYGZus{}training\PYGZus{}set} \PYG{o}{=} \PYG{n}{LabeledDataSet}\PYG{p}{(}\PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{train\PYGZus{}data}\PYG{p}{),} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{train\PYGZus{}labels}\PYG{p}{),} \PYG{n}{SampleCount}\PYG{p}{(}\PYG{n}{train\PYGZus{}pos}\PYG{p}{,} \PYG{n}{train\PYGZus{}neg}\PYG{p}{))}
+    \PYG{n}{labeled\PYGZus{}testing\PYGZus{}set} \PYG{o}{=} \PYG{n}{LabeledDataSet}\PYG{p}{(}\PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{test\PYGZus{}data}\PYG{p}{),} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{test\PYGZus{}labels}\PYG{p}{),} \PYG{n}{SampleCount}\PYG{p}{(}\PYG{n}{test\PYGZus{}pos}\PYG{p}{,} \PYG{n}{test\PYGZus{}neg}\PYG{p}{))}
+
+    \PYG{k}{return} \PYG{n}{labeled\PYGZus{}training\PYGZus{}set}\PYG{p}{,} \PYG{n}{labeled\PYGZus{}testing\PYGZus{}set}
+
+
+\PYG{k}{def} \PYG{n+nf}{get\PYGZus{}dataset\PYGZus{}path}\PYG{p}{(}\PYG{n}{window\PYGZus{}size}\PYG{p}{,} \PYG{n}{category}\PYG{p}{,} \PYG{n}{data\PYGZus{}type}\PYG{p}{,} \PYG{n}{dataset}\PYG{o}{=}\PYG{k+kc}{None}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZsq{}\PYGZsq{}\PYGZsq{}}
+\PYG{l+s+sd}{    Get the file path for the dataset based on the window size, category, and data type.}
+
+\PYG{l+s+sd}{    Parameters:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    window\PYGZus{}size : tuple}
+\PYG{l+s+sd}{        The size of the sliding window as (height, width).}
+
+\PYG{l+s+sd}{    category : str}
+\PYG{l+s+sd}{        The category of the dataset, either \PYGZsq{}train\PYGZsq{} or \PYGZsq{}test\PYGZsq{}.}
+
+\PYG{l+s+sd}{    data\PYGZus{}type : str}
+\PYG{l+s+sd}{        The type of data, either \PYGZsq{}point\PYGZsq{} or \PYGZsq{}label\PYGZsq{}.}
+
+\PYG{l+s+sd}{    dataset : str, optional}
+\PYG{l+s+sd}{        The name of the dataset (required if category is \PYGZsq{}test\PYGZsq{}).}
+
+\PYG{l+s+sd}{    Returns:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    str}
+\PYG{l+s+sd}{        The file path for the specified dataset.}
+\PYG{l+s+sd}{    \PYGZsq{}\PYGZsq{}\PYGZsq{}}
+
+    \PYG{n}{file\PYGZus{}path} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}\PYGZsq{}}
+
+    \PYG{k}{if} \PYG{n}{category} \PYG{o+ow}{not} \PYG{o+ow}{in} \PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}train\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}test\PYGZsq{}}\PYG{p}{]:}
+        \PYG{k}{raise} \PYG{n+ne}{ValueError}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}category must be either \PYGZdq{}train\PYGZdq{} or \PYGZdq{}test\PYGZdq{}\PYGZsq{}}\PYG{p}{)}
+    \PYG{k}{if} \PYG{n}{data\PYGZus{}type} \PYG{o+ow}{not} \PYG{o+ow}{in} \PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}point\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}label\PYGZsq{}}\PYG{p}{]:}
+        \PYG{k}{raise} \PYG{n+ne}{ValueError}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}data\PYGZus{}type must be either \PYGZdq{}point\PYGZdq{} or \PYGZdq{}label\PYGZdq{}\PYGZsq{}}\PYG{p}{)}
+
+    \PYG{n}{category\PYGZus{}dir} \PYG{o}{=} \PYG{l+s+sa}{f}\PYG{l+s+s1}{\PYGZsq{}../datasets/npy\PYGZus{}}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{category}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{\PYGZsq{}}
+
+    \PYG{n}{file\PYGZus{}name} \PYG{o}{=} \PYG{l+s+sa}{f}\PYG{l+s+s1}{\PYGZsq{}}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{data\PYGZus{}type}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{\PYGZus{}}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{\PYGZhy{}}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{window\PYGZus{}size}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{.npy\PYGZsq{}}
+
+    \PYG{k}{if} \PYG{n}{category} \PYG{o}{==} \PYG{l+s+s1}{\PYGZsq{}train\PYGZsq{}}\PYG{p}{:}
+        \PYG{n}{file\PYGZus{}path} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{category\PYGZus{}dir}\PYG{p}{,} \PYG{n}{file\PYGZus{}name}\PYG{p}{)}
+    \PYG{k}{elif} \PYG{n}{category} \PYG{o}{==} \PYG{l+s+s1}{\PYGZsq{}test\PYGZsq{}} \PYG{o+ow}{and} \PYG{n}{dataset} \PYG{o+ow}{is} \PYG{o+ow}{not} \PYG{k+kc}{None}\PYG{p}{:}
+        \PYG{n}{file\PYGZus{}path} \PYG{o}{=} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{category\PYGZus{}dir}\PYG{p}{,} \PYG{n}{dataset}\PYG{p}{,} \PYG{n}{file\PYGZus{}name}\PYG{p}{)}
+
+    \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{exists}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{dirname}\PYG{p}{(}\PYG{n}{file\PYGZus{}path}\PYG{p}{)):}
+        \PYG{n}{os}\PYG{o}{.}\PYG{n}{makedirs}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{dirname}\PYG{p}{(}\PYG{n}{file\PYGZus{}path}\PYG{p}{))}
+
+    \PYG{k}{return} \PYG{n}{file\PYGZus{}path}
+
+
+\PYG{k}{def} \PYG{n+nf}{init\PYGZus{}datasets}\PYG{p}{(}\PYG{n}{datasets\PYGZus{}path}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZsq{}\PYGZsq{}\PYGZsq{}}
+\PYG{l+s+sd}{    Initialize datasets for different window sizes and save the training and testing sets.}
+
+\PYG{l+s+sd}{    Parameters:}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    datasets\PYGZus{}path : str}
+\PYG{l+s+sd}{        The path to the datasets directory.}
+\PYG{l+s+sd}{    \PYGZsq{}\PYGZsq{}\PYGZsq{}}
+    \PYG{k}{for} \PYG{n}{window\PYGZus{}size} \PYG{o+ow}{in} \PYG{n}{window\PYGZus{}sizes}\PYG{p}{:}
+        \PYG{n}{total\PYGZus{}training\PYGZus{}points} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{([])}
+        \PYG{n}{total\PYGZus{}training\PYGZus{}labels} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{([])}
+        \PYG{k}{for} \PYG{n}{dataset} \PYG{o+ow}{in} \PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}INRIA\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}caltech\PYGZus{}30\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}PnPLO\PYGZsq{}}\PYG{p}{]:}
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+sa}{f}\PYG{l+s+s1}{\PYGZsq{}}\PYG{l+s+se}{\PYGZbs{}n\PYGZbs{}n}\PYG{l+s+s1}{Initializing dataset }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{dataset}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{ with window size }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{window\PYGZus{}size}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{)}
+            \PYG{n}{training\PYGZus{}set}\PYG{p}{,} \PYG{n}{testing\PYGZus{}set} \PYG{o}{=} \PYG{n}{prepare\PYGZus{}labeled\PYGZus{}datasets}\PYG{p}{(}\PYG{n}{os}\PYG{o}{.}\PYG{n}{path}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{datasets\PYGZus{}path}\PYG{p}{,} \PYG{n}{dataset}\PYG{p}{),} \PYG{n}{window\PYGZus{}size}\PYG{p}{)}
+
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Training Positives: \PYGZdq{}}\PYG{p}{,} \PYG{n}{training\PYGZus{}set}\PYG{o}{.}\PYG{n}{sample\PYGZus{}count}\PYG{o}{.}\PYG{n}{pos}\PYG{p}{)}
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Training Negatives: \PYGZdq{}}\PYG{p}{,} \PYG{n}{training\PYGZus{}set}\PYG{o}{.}\PYG{n}{sample\PYGZus{}count}\PYG{o}{.}\PYG{n}{neg}\PYG{p}{)}
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Testing Positives: \PYGZdq{}}\PYG{p}{,} \PYG{n}{testing\PYGZus{}set}\PYG{o}{.}\PYG{n}{sample\PYGZus{}count}\PYG{o}{.}\PYG{n}{pos}\PYG{p}{)}
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Testing Negatives: \PYGZdq{}}\PYG{p}{,} \PYG{n}{testing\PYGZus{}set}\PYG{o}{.}\PYG{n}{sample\PYGZus{}count}\PYG{o}{.}\PYG{n}{neg}\PYG{p}{)}
+
+            \PYG{c+c1}{\PYGZsh{} np.concatenate requires identical array dimensions}
+            \PYG{k}{if} \PYG{n}{total\PYGZus{}training\PYGZus{}points}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{==} \PYG{l+m+mi}{0}\PYG{p}{:}
+                \PYG{n}{total\PYGZus{}training\PYGZus{}points} \PYG{o}{=} \PYG{n}{training\PYGZus{}set}\PYG{o}{.}\PYG{n}{points}
+                \PYG{n}{total\PYGZus{}training\PYGZus{}labels} \PYG{o}{=} \PYG{n}{training\PYGZus{}set}\PYG{o}{.}\PYG{n}{labels}
+            \PYG{k}{else}\PYG{p}{:}
+                \PYG{n}{total\PYGZus{}training\PYGZus{}points} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{concatenate}\PYG{p}{((}\PYG{n}{total\PYGZus{}training\PYGZus{}points}\PYG{p}{,} \PYG{n}{training\PYGZus{}set}\PYG{o}{.}\PYG{n}{points}\PYG{p}{))}
+                \PYG{n}{total\PYGZus{}training\PYGZus{}labels} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{concatenate}\PYG{p}{((}\PYG{n}{total\PYGZus{}training\PYGZus{}labels}\PYG{p}{,} \PYG{n}{training\PYGZus{}set}\PYG{o}{.}\PYG{n}{labels}\PYG{p}{))}
+
+            \PYG{n}{np}\PYG{o}{.}\PYG{n}{save}\PYG{p}{(}\PYG{n}{get\PYGZus{}dataset\PYGZus{}path}\PYG{p}{(}\PYG{n}{window\PYGZus{}size}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}test\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}point\PYGZsq{}}\PYG{p}{,} \PYG{n}{dataset}\PYG{p}{),} \PYG{n}{testing\PYGZus{}set}\PYG{o}{.}\PYG{n}{points}\PYG{p}{)}
+            \PYG{n}{np}\PYG{o}{.}\PYG{n}{save}\PYG{p}{(}\PYG{n}{get\PYGZus{}dataset\PYGZus{}path}\PYG{p}{(}\PYG{n}{window\PYGZus{}size}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}test\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}label\PYGZsq{}}\PYG{p}{,} \PYG{n}{dataset}\PYG{p}{),} \PYG{n}{testing\PYGZus{}set}\PYG{o}{.}\PYG{n}{labels}\PYG{p}{)}
+
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s+s2}{Initialized\PYGZdq{}}\PYG{p}{)}
+
+        \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+se}{\PYGZbs{}n\PYGZbs{}n}\PYG{l+s+s2}{Saving total training sets}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+        \PYG{n}{np}\PYG{o}{.}\PYG{n}{save}\PYG{p}{(}\PYG{n}{get\PYGZus{}dataset\PYGZus{}path}\PYG{p}{(}\PYG{n}{window\PYGZus{}size}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}train\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}point\PYGZsq{}}\PYG{p}{),} \PYG{n}{total\PYGZus{}training\PYGZus{}points}\PYG{p}{)}
+        \PYG{n}{np}\PYG{o}{.}\PYG{n}{save}\PYG{p}{(}\PYG{n}{get\PYGZus{}dataset\PYGZus{}path}\PYG{p}{(}\PYG{n}{window\PYGZus{}size}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}train\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}label\PYGZsq{}}\PYG{p}{),} \PYG{n}{total\PYGZus{}training\PYGZus{}labels}\PYG{p}{)}
+
+\end{Verbatim}

@@ -136,7 +136,7 @@ def retain_30th_frame():
     root_dir = r'/Users/adamsam/repos/ee/Pedestrian-Detection/datasets/caltech_30/Test'
     annotation_dir = os.path.join(root_dir, 'annotations')
     frame_dir = os.path.join(root_dir, 'frame')
-
+    frame_instance = 0
     for frame_subdir in tqdm(os.listdir(frame_dir)):
         frame_subdir_path = os.path.join(frame_dir, frame_subdir)
         if(os.path.isdir(frame_subdir_path)):
@@ -147,9 +147,9 @@ def retain_30th_frame():
                 if not os.path.isfile(file_location):
                     continue
 
-                frame_number = int(frame_file.split('.')[0].split('_')[-1])
+                frame_instance += 1
 
-                if frame_number % 30 != 0:
+                if frame_instance % 30 != 0:
                     os.remove(file_location)
                     annotation_file_location = os.path.join(annotation_dir, frame_subdir, 'bbox', frame_file.split('.')[0] + '.xml')
                     if os.path.isfile(annotation_file_location):

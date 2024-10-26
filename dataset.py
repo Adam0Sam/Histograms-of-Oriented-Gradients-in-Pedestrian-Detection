@@ -1,12 +1,11 @@
 import cv2
 import numpy as np
 import os
-
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 import random
 
-window_sizes = [(128, 64), (112, 48), (100, 50), (128, 96)]
+datasets = ['INRIA', 'caltech_30', 'PnPLO']
 
 class SampleCount:
     def __init__(self, pos_count, neg_count):
@@ -37,6 +36,12 @@ def parse_pascal_voc_annotations(file_name):
 
 
 def prepare_labeled_datasets(image_folder, window_size, test_size=0.2, random_state=42):
+    """
+    Notes:
+    ------
+        - The function expects the image folder to have a specific structure with subdirectories for frames and annotations.
+        - Positive samples are created from bounding boxes in the annotations, and negative samples are created by randomly cropping windows from the images.
+    """
     image_dir = os.path.join(image_folder, "frame")
     annotation_dir = os.path.join(image_folder, "annotations")
 

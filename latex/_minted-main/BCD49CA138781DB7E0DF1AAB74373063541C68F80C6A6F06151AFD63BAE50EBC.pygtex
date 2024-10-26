@@ -1,0 +1,5 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{from} \PYG{n+nn}{skimage.feature.\PYGZus{}hog} \PYG{n}{\PYGZus{}hog\PYGZus{}channel\PYGZus{}gradient}
+\PYG{k}{def} \PYG{n+nf}{\PYGZus{}central\PYGZus{}hog\PYGZus{}channel\PYGZus{}gradient}\PYG{p}{(}\PYG{n}{channel}\PYG{p}{):}
+    \PYG{k}{return} \PYG{n}{\PYGZus{}hog\PYGZus{}channel\PYGZus{}gradient}\PYG{p}{(}\PYG{n}{channel}\PYG{p}{)}
+\end{Verbatim}
