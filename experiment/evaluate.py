@@ -126,7 +126,7 @@ def get_k_rows(metric, dataset, row_count=10, top=True):
     score_map = {}
 
     def get_score(svm_parameters):
-        score_file_name = f"../computed/scores/{dataset}/{svm_parameters.get_svm_name()}.npy"
+        score_file_name = f"../../computed/scores/{dataset}/{svm_parameters.get_svm_name()}.npy"
         if os.path.exists(score_file_name):
             score = np.load(score_file_name)
             score_map[svm_parameters.get_svm_name()] = score
@@ -136,7 +136,9 @@ def get_k_rows(metric, dataset, row_count=10, top=True):
     iterate_model_parameters(get_score)
 
     sorted_scores = sorted(score_map.items(), key=lambda x: x[1][score_keys.index(metric)], reverse=top)
-    top_k_rows = sorted_scores[:row_count]
+    
+    
+    top_k_rows = sorted_scores[:row_count] if row_count > 0 else sorted_scores
     return [(row_name, scores[score_keys.index(metric)]) for row_name, scores in top_k_rows]
 
 
@@ -153,7 +155,7 @@ def compute_score_table(dataset, window_size=None, cheap=None, overwrite=False):
         if window_size is not None and svm_parameters.window_size != window_size:
             return
 
-        score_file_name = f"../computed/scores/{dataset}/{svm_parameters.get_svm_name()}.npy"
+        score_file_name = f"../../computed/scores/{dataset}/{svm_parameters.get_svm_name()}.npy"
         if os.path.exists(score_file_name) and not overwrite:
             if all_exist is False:
                 print(f"EXISTS: Score for {svm_parameters.get_svm_name()}")
@@ -163,7 +165,7 @@ def compute_score_table(dataset, window_size=None, cheap=None, overwrite=False):
         else:
             print(f"Computing {current_row}/{total}: {svm_parameters.get_svm_name()}")
             all_exist = False
-            model = load_svm(svm_parameters, '../computed/models')
+            model = load_svm(svm_parameters, '../../computed/models')
             X = hog_transform(
                 grayscale_transform(np.load(get_dataset_path(svm_parameters.window_size, 'test', 'point', dataset))),
                               svm_parameters.hog_parameters)

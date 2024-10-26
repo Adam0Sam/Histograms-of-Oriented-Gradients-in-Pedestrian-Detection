@@ -17,10 +17,10 @@ def train():
     hogify = HogTransformer(hog_parameters)
     scalify = StandardScaler()
 
-    X_train, y_train = prepare_labeled_data('../datasets/caltech_30/Train', window_size)
+    X_train, y_train = prepare_labeled_data('../../datasets/caltech_30/Train', window_size)
 
-    # X_train = np.load('../datasets/playground/train/train_x.npy')
-    # y_train = np.load('../datasets/playground/train/train_y.npy')
+    # X_train = np.load('../../datasets/playground/train/train_x.npy')
+    # y_train = np.load('../../datasets/playground/train/train_y.npy')
 
     print("Grayfiying")
     X_train_gray = grayify.fit_transform(X_train)
@@ -35,12 +35,12 @@ def train():
 
     print("Testing")
 
-    # X_test = np.load('../datasets/playground/test/test_x.npy')
-    # y_test = np.load('../datasets/playground/test/test_y.npy')
+    # X_test = np.load('../../datasets/playground/test/test_x.npy')
+    # y_test = np.load('../../datasets/playground/test/test_y.npy')
 
     print("Preparing test from caltech")
 
-    X_test, y_test = prepare_labeled_data('../datasets/caltech_30/Test', window_size)
+    X_test, y_test = prepare_labeled_data('../../datasets/caltech_30/Test', window_size)
 
     X_test_gray = grayify.transform(X_test)
     X_test_hog = hogify.transform(X_test_gray)
@@ -157,13 +157,13 @@ def retain_30th_frame():
 
 
 if __name__ == "__main__":
-    caltech_data_points, caltech_labels = prepare_data("../datasets/caltech_30/Train", (128, 64))
-    inria_data_points, inria_labels = prepare_data("../datasets/INRIA/Train", (128, 64))
-    pnplo_data_points, pnplo_labels = prepare_data("../datasets/PnPLO/Train", (128, 64))
+    caltech_data_points, caltech_labels = prepare_data("../../datasets/caltech_30/Train", (128, 64))
+    inria_data_points, inria_labels = prepare_data("../../datasets/INRIA/Train", (128, 64))
+    pnplo_data_points, pnplo_labels = prepare_data("../../datasets/PnPLO/Train", (128, 64))
 
     np.save(
-        "../datasets/data_points.npy",
+        "../../datasets/data_points.npy",
         np.array(caltech_data_points + inria_data_points + pnplo_data_points)
     )
-    np.save("../datasets/labels.npy", np.array(caltech_labels + inria_labels + pnplo_labels))
+    np.save("../../datasets/labels.npy", np.array(caltech_labels + inria_labels + pnplo_labels))
 

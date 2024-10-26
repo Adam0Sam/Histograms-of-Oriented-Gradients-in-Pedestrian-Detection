@@ -18,7 +18,7 @@ def hog_transform_cache(X, svm_parameters: SVM_Parameters, category, dataset):
         raise ValueError('Dataset must be either INRIA, caltech_30, or PnPLO')
 
     def get_cached_hog_name():
-        return f'../cache/{svm_parameters.get_svm_name()}_{category}_{dataset}.npy'
+        return f'../../cache/{svm_parameters.get_svm_name()}_{category}_{dataset}.npy'
 
     if os.path.exists(get_cached_hog_name()):
         return np.load(get_cached_hog_name())

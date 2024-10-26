@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 
 def load_svm(svm_parameters: SVM_Parameters, model_dir=None, custom_name=None):
     model_name = custom_name if custom_name is not None else svm_parameters.get_svm_name()
-    model_dir = model_dir if model_dir is not None else '../computed/models'
+    model_dir = model_dir if model_dir is not None else '../../computed/models'
     model_file_name = os.path.join(model_dir, model_name + ".pkl")
     if os.path.exists(model_file_name):
         return joblib.load(model_file_name)
@@ -20,7 +20,7 @@ def train_svm(svm_parameters: SVM_Parameters, data_points_location, labels_locat
     from sklearn.linear_model import SGDClassifier
     model_name = custom_name if custom_name is not None else svm_parameters.get_svm_name()
 
-    model_file_path = os.path.join('../computed/models', model_name + ".pkl")
+    model_file_path = os.path.join('../../computed/models', model_name + ".pkl")
 
     if os.path.exists(model_file_path):
       if overwrite:
@@ -28,7 +28,7 @@ def train_svm(svm_parameters: SVM_Parameters, data_points_location, labels_locat
         os.remove(model_file_path)
       else:
         print("Model already exists")
-        model = load_svm(svm_parameters, model_dir='../computed/models', custom_name=custom_name)
+        model = load_svm(svm_parameters, model_dir='../../computed/models', custom_name=custom_name)
         single_x = np.load(data_points_location)[0]
         single_x_gray = grayscale_transform(np.array([single_x]))
         single_x_hog = hog_transform(single_x_gray, svm_parameters.hog_parameters)

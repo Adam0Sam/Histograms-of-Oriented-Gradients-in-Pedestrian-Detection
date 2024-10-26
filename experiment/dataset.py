@@ -131,7 +131,7 @@ def get_dataset_path(window_size, category, data_type, dataset=None):
     if data_type not in ['point', 'label']:
         raise ValueError('data_type must be either "point" or "label"')
 
-    category_dir = f'../datasets/npy_{category}'
+    category_dir = f'../../datasets/npy_{category}'
 
     file_name = f'{data_type}_{window_size[1]}-{window_size[0]}.npy'
 
@@ -179,7 +179,7 @@ def init_datasets(datasets_path):
 
 
 if __name__ == '__main__':
-    init_datasets('../datasets')
+    init_datasets('../../datasets')
 
 
 

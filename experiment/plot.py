@@ -83,7 +83,7 @@ def plot_kde_dimensions():
 
 def plot_roc_curve(svm_parameters: SVM_Parameters):
 
-    svm = load_svm(svm_parameters, '../saved_models')
+    svm = load_svm(svm_parameters, '../../saved_models')
 
     fig, ax = plt.subplots(figsize=(6, 6))
     tprs = []
@@ -142,8 +142,8 @@ def plot_roc_curve(svm_parameters: SVM_Parameters):
     )
     ax.legend(loc="lower right")
     plt.show()
-
-def parse_detector_name(detector_name, return_string=True, return_object=False):
+    
+def get_svm_params(detector_name):
     orientations = re.search(r'orientations_(\d+)', detector_name)
     pixels_per_cell = re.search(r'pixels_per_cell_\((\d+),\s*(\d+)\)', detector_name)
     cells_per_block = re.search(r'cells_per_block_\((\d+),\s*(\d+)\)', detector_name)
@@ -158,8 +158,7 @@ def parse_detector_name(detector_name, return_string=True, return_object=False):
     b_h, b_w = cells_per_block.group(1), cells_per_block.group(2) if cells_per_block else (None, None)
     s_h, s_w = block_stride.group(1), block_stride.group(2) if block_stride else (None, None)
     hdm = holistic_derivative_mask.group(1) if holistic_derivative_mask else None
-
-    formatted_string = f"${orientations_value}$-$({c_h},{c_w})$-$({b_h},{b_w})$-$({s_h},{s_w})$-{hdm}" if return_string else None
+    
     hog_parameters = HOG_Parameters(
         orientations=int(orientations_value),
         pixels_per_cell=(int(c_h), int(c_w)),
@@ -171,7 +170,7 @@ def parse_detector_name(detector_name, return_string=True, return_object=False):
     return SVM_Parameters(
         hog_parameters=hog_parameters,
         window_size=(int(W_h), int(W_w))
-    ) if return_object else formatted_string
+    )
 
 def plot_mcc_f1_curve(estimator, X, y, *, sample_weight=None,
                       response_method="auto", name=None, ax=None,
@@ -279,7 +278,7 @@ def output_metrics_table(metrics_dict, custom_detector_names=False, detector_col
         if custom_detector_names:
             row = [detector]
         else:
-            row = [parse_detector_name(detector)]
+            row = [get_svm_params(detector).get_svm_name()]
         for metric in score_keys:
             try:
 
