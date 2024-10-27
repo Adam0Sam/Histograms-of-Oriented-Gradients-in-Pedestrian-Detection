@@ -5,7 +5,8 @@ import os, shutil
 import random
 import json
 from dataset import get_dataset_path
-from parameters import HOG_Parameters, SVM_Parameters, iterate_model_parameters, datasets
+from parameters import HOG_Parameters, SVM_Parameters, iterate_model_parameters
+from dataset import datasets
 from transform import grayscale_transform, hog_transform
 import numpy as np
 from sklearn.linear_model import SGDClassifier
@@ -96,34 +97,48 @@ def get_concatenated_test_samples(svm_parameters: SVM_Parameters):
         total_y.append(y_test)
     return np.concatenate(total_x), np.concatenate(total_y)
 
-def getattrs(obj):
-    if not hasattr(obj, '__class__'):
+def get_attr_names(cls):
+    if not hasattr(cls, '__class__'):
         raise ValueError("The provided object is not an instance of a class.")
-    return [a for a in dir(obj) if not a.startswith('__') and not callable(getattr(obj, a))]
+    return cls.__init__.__code__.co_varnames[1:cls.__init__.__code__.co_argcount]
 
-def get_detectors_by_prop(prop, prop_value):
-    dummy_hog = HOG_Parameters(
-        pixels_per_cell=(8,8),
-        cells_per_block=(2,2),
-        orientations=9,
-        holistic_derivative_mask=True,
-        block_stride=(1,1),
-    )
-    dummy_svm = SVM_Parameters(
-        (128, 64),
-        dummy_hog
-    )
+def get_detector_pairs(prop_name, prop_value):
+    detectors_with_prop, detectors_without_prop = get_detectors_by_prop(prop_name, prop_value, return_inadequate=True)
+    print(detectors_with_prop[0].hog_parameters.get_hog_name())
+    print(detectors_without_prop[0].hog_parameters.get_hog_name())
+    zipped_detectors = []
+    for detector_with_prop in detectors_with_prop:
+        for detector_without_prop in detectors_without_prop:
+            identical_features = True
+            for attr_name in get_attr_names(detector_with_prop):
+                if attr_name == prop_name:
+                    continue
+                if getattr(detector_with_prop, attr_name) != getattr(detector_without_prop, attr_name):
+                    identical_features = False
+                    break
+            if identical_features:
+                zipped_detectors.append((detector_with_prop, detector_without_prop))
+    return zipped_detectors
+                    
     
-    if prop not in getattrs(dummy_svm) and prop not in getattrs(dummy_hog):
+    
+
+def get_detectors_by_prop(prop, prop_value, return_inadequate=False):
+    if prop not in get_attr_names(SVM_Parameters) and prop not in get_attr_names(HOG_Parameters):
         raise ValueError(f"Property {prop} not found in SVM_Parameters or HOG_Parameters.")
     
     detectors = []
+    inadequate_detectors = []
     for svm_params in iterate_model_parameters():
-        if prop == 'window_size':
-            if getattr(svm_params, prop) == prop_value:
-                detectors.append(svm_params)
+        if prop == 'window_size' and getattr(svm_params, prop) == prop_value:
+            detectors.append(svm_params)
         elif getattr(svm_params.hog_parameters, prop) == prop_value:
             detectors.append(svm_params)
+        else:
+            inadequate_detectors.append(svm_params)
+            
+    if return_inadequate:
+        return detectors, inadequate_detectors
     return detectors
 
 def get_svm_params(detector_name):

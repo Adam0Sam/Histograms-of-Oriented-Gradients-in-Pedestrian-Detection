@@ -14,6 +14,7 @@ from hog import HOG_Parameters
 from svm import SVM_Parameters, load_svm
 from transform import grayscale_transform, hog_transform, hog_transform_cache
 from mcc_f1_curve_display import MCCF1CurveDisplay
+from utils import get_svm_params
 
 rc('font', **{'family': 'serif', 'serif': ['Computer Modern'], 'size': 12})
 rc('text', usetex=True)
