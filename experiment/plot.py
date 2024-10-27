@@ -314,7 +314,7 @@ def output_metrics_table(metrics_dict, custom_detector_names=False, detector_col
 
         # First column styling (detector names)
         if j == 0:
-            cell.set_width(0.3)
+            cell.set_width(0.35)
 
         if i == 0 and j == 0:
             cell.set_text_props(weight='bold')

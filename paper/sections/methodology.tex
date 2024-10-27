@@ -198,7 +198,7 @@ McNemar's test checks if two classifiers have significantly different performanc
 
 \subsection{Model Preparation}
 
-As mentioned in sections \ref{sec:supervised_ml} and \ref{sec:dependent_variables}, a data set has to be uniquely prepared for each of the different 864 SVM models. This is done in two steps: by first preprocessing each window sample and then computing the HOG features (data points) on which a model will be trained and tested.
+As mentioned in sections \ref{§sec:supervised_ml} and \ref{sec:dependent_variables}, a data set has to be uniquely prepared for each of the different 864 SVM models. This is done in two steps: by first preprocessing each window sample and then computing the HOG features (data points) on which a model will be trained and tested.
 
 \subsubsection{Preprocessing: Grayscale Image Transformation}
 
@@ -227,7 +227,7 @@ Since neither the \href{https://scikit-image.org/}{scikit-image} nor \href{https
 
 The primary factor driving the choice of SVM implementation is time of computation. Given the relatively large number of models that have to be trained on $\sim$ 27,000 samples, an implementation which is able to maximize the hyperplane's margin in the least amount of time while still maintaining relatively decent classification performance is a necessity. 
 
-The standard SVM implementation is LibSVM \cite{chang_lin_2011_libsvm} \cite{scikit-learn_svm}, however, it's training times scale quadratically with the number of samples \cite{scikit-learn_svm} (in practice it took $\sim$ 10 hours to train a single LibSVM model on $\sim$ 27,000 samples). The maintainers \href{https://scikit-learn.org/}{scikit-learn} recommend using either LibLinear or their own implementation of a linear SVM with stochastic gradient descent (SGD). SGD only uses a subset of samples when determining the cost function's, which, in this case, has inputs of $||w||_{2}$ and $b$ from section \ref{sec:soft_constraint_svm}, gradient and the subsequent direction towards the global minima \cite{uc_berkeley_sgd}. This is in contrast to regular gradient descent (GD) which uses all samples for gradient calculation. As such, while training a model with SGD would be faster, we should also expect the SGD model to have worse performance guarantees than GD \cite{uc_berkeley_sgd}.
+The standard SVM implementation is LibSVM \cite{chang_lin_2011_libsvm} \cite{scikit-learn_svm}, however, it's training times scale quadratically with the number of samples \cite{scikit-learn_svm} (in practice it takes $\sim$ 1,600,000 \% more time to train an SVM with SMO as opposed to SGD \cite{sgd_leon}). The maintainers \href{https://scikit-learn.org/}{scikit-learn} recommend using either LibLinear or their own implementation of a linear SVM with stochastic gradient descent (SGD). SGD only uses a subset of samples when determining the cost function's, which, in this case, has inputs of §$||w||_{2}$ and $b$ from section \ref{sec:soft_constraint_svm}, gradient and the subsequent direction towards the global minima \cite{uc_berkeley_sgd}. This is in contrast to regular gradient descent (GD) which uses all samples for gradient calculation. As such, while training a model with SGD would be faster, we should also expect the SGD model to have worse performance guarantees than GD \cite{uc_berkeley_sgd}.
 
 In practice however, both LibLinear \footnote{LibLinear SVM docs: \url{https://scikit-learn.org/1.5/modules/generated/sklearn.svm.LinearSVC.html}} and an SVM with GDC \footnote{SVM with SGD docs: \url{https://scikit-learn.org/1.5/modules/generated/sklearn.linear_model.SGDClassifier.html}} exhibit essentially identical pedestrian classification performance, as evidenced by a McNemar's test p-value of $\sim$ 0.121, further comparisons are made in table \ref{tab:liblinear_vs_sgd_table} and figure \ref{fig:liblinear_vs_sgd_curve}.
 
@@ -244,6 +244,24 @@ In practice however, both LibLinear \footnote{LibLinear SVM docs: \url{https://s
     \caption{An MCC-F1 curve of both LinearSVC and SGDClassifier trained on the standard HOG feature parameters \cite{dalal_2005_histograms}. Notice that the best performing $\tau$ value for SGDClassifier is negative, as $\tau$ identifies the distance which allows a point to be classified as a positive. This relates to Soft Constraint SVMs mentioned in section \ref{sec:soft_constraint_svm}.}
     \label{fig:liblinear_vs_sgd_curve}
 \end{figure}
+
+\subsubsection{Training an SVM}
+
+The code in appendix \ref{appendix:training_svm} implements SVM training using SGDClassifier optimized through cross 5-fold validation (with GridSearchCV) \cite{cornell_hyperoptimization}, which systematically explores different regularization strength values (alpha). The search grid consists of 4 "soft" regularization parameters, as discussed in section \ref{sec:soft_constraint_svm}. This means that each SGDClassifier will be fitted a total of 20 times, with the best performing model (in terms of MCC) being saved for each set of HOG parameters. While the initial learning rate (eta$\theta$) is also a parameter that should be optimized, this investigation avoids the additional training overhead by using Leon Bottou's "optimal heuristic" for deriving the learning rate from alpha \cite{sgd_leon}.
+
+The majority of the training was performed on a linux-based system with an Intel Xeon CPU @ 2.20GHz (2 cores), 12.7GB of RAM, as provided by \href{https://colab.research.google.com/}{Google Colab}. Especially high dimensional HOG features (from figure \ref{fig:dimension_distribution}) tend to exceed the memory capacity of google colab's free tier, which is why the training for higher dimensional models was done on a local machine with an Intel Core i7 @ 2.6GHz (6 cores) and 32GB of RAM.
+
+\begin{figure}
+    \includesvg[
+        width=\linewidth,
+    ]{dimension_distribution.svg}
+    \caption{A KDE distribution of the number of dimensions in the HOG feature vectors for each of the 864 models. The most frequent number of dimensions is 3780, which is the number of dimensions for the standard HOG parameters \cite{dalal_2005_histograms}.}
+    \label{fig:dimension_distribution}
+\end{figure}
+
+\subsection{Data Presentation}
+
+tsg kazka apie data presentation ir kad kiti yra in appendix
 
 
 

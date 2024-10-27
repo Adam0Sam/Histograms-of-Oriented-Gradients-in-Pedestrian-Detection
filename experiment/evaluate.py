@@ -9,7 +9,7 @@ from dataset import get_dataset_path, datasets
 from parameters import HOG_Parameters, SVM_Parameters
 from svm import load_svm
 from transform import hog_transform, grayscale_transform
-from variables import iterate_model_parameters, get_model_count
+from variables import COMPUTED_PATH, iterate_model_parameters, get_model_count
 
 score_keys = ['mcc', 'accuracy', 'f1', 'fppw', 'auc_roc', 'average_precision']
 score_index_map = {key: i for i, key in enumerate(score_keys)}
@@ -126,8 +126,8 @@ def get_k_rows(metric, dataset, custom_param_list=None, row_count=10, top=True, 
 
     score_map = {}
 
-    def get_score(svm_parameters):
-        score_file_name = f"../../computed/scores/{dataset}/{svm_parameters.get_svm_name()}.npy"
+    def get_score(svm_parameters: SVM_Parameters):
+        score_file_name = os.path.join(COMPUTED_PATH, f"scores/{dataset}/{svm_parameters.get_svm_name()}.npy")
         if os.path.exists(score_file_name):
             score = np.load(score_file_name)
             score_map[svm_parameters.get_svm_name()] = score
@@ -149,11 +149,11 @@ def get_k_rows(metric, dataset, custom_param_list=None, row_count=10, top=True, 
         return [(row_name, scores[score_keys.index(metric)]) for row_name, scores in score_map.items()]
     
 def get_score(svm_parameters: SVM_Parameters, dataset, force_calc=False):
-    score_file_name = f"../../computed/scores/{dataset}/{svm_parameters.get_svm_name()}.npy"
+    score_file_name = os.path.join(COMPUTED_PATH, f"scores/{dataset}/{svm_parameters.get_svm_name()}.npy")
     if os.path.exists(score_file_name) and not force_calc:
         return np.load(score_file_name)
     else:
-        model = load_svm(svm_parameters, '../../computed/models')
+        model = load_svm(svm_parameters)
         X = hog_transform(
             grayscale_transform(np.load(get_dataset_path(svm_parameters.window_size, 'test', 'point', dataset))),
                             svm_parameters.hog_parameters)
@@ -163,19 +163,27 @@ def get_score(svm_parameters: SVM_Parameters, dataset, force_calc=False):
         return score
 
 
-def compute_score_table(dataset, window_size=None, cheap=None, overwrite=False):
+def compute_score_table(dataset, custom_param_list=None, window_size=None, cheap=None, overwrite=False):
     table = {}
     current_row = 0
     total = get_model_count(cheap=cheap)
     current_row = 0
-    for svm_parameters in iterate_model_parameters(cheap=cheap):
+    def compute_row(svm_parameters: SVM_Parameters):
         if window_size is not None and svm_parameters.window_size != window_size:
-            continue
-        print(f"Computing score for {svm_parameters.get_svm_name()} ({current_row}/{total})")
+            return
+        nonlocal current_row
+        current_row += 1
         score = get_score(svm_parameters, dataset=dataset, force_calc=overwrite)
         if overwrite:
-            np.save(f"../../computed/scores/{dataset}/{svm_parameters.get_svm_name()}.npy", score)
+            np.save(os.path.join(COMPUTED_PATH, f"/scores/{dataset}/{svm_parameters.get_svm_name()}.npy"), score)
         table[svm_parameters.get_svm_name()] = score
+    
+    if custom_param_list is not None and len(custom_param_list) > 0:
+        for param in custom_param_list:
+            compute_row(param)
+    else:
+        for svm_parameters in iterate_model_parameters(cheap=cheap):
+            compute_row(svm_parameters)
 
     return table
 

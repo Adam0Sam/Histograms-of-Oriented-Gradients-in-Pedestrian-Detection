@@ -130,8 +130,9 @@ def get_detectors_by_prop(prop, prop_value, return_inadequate=False):
     detectors = []
     inadequate_detectors = []
     for svm_params in iterate_model_parameters():
-        if prop == 'window_size' and getattr(svm_params, prop) == prop_value:
-            detectors.append(svm_params)
+        if prop == 'window_size':
+            if getattr(svm_params, prop) == prop_value:
+                detectors.append(svm_params)
         elif getattr(svm_params.hog_parameters, prop) == prop_value:
             detectors.append(svm_params)
         else:
@@ -141,7 +142,7 @@ def get_detectors_by_prop(prop, prop_value, return_inadequate=False):
         return detectors, inadequate_detectors
     return detectors
 
-def get_svm_params(detector_name):
+def extract_svm_params(detector_name):
     orientations = re.search(r'orientations_(\d+)', detector_name)
     pixels_per_cell = re.search(r'pixels_per_cell_\((\d+),\s*(\d+)\)', detector_name)
     cells_per_block = re.search(r'cells_per_block_\((\d+),\s*(\d+)\)', detector_name)
@@ -157,6 +158,11 @@ def get_svm_params(detector_name):
     s_h, s_w = block_stride.group(1), block_stride.group(2) if block_stride else (None, None)
     hdm = holistic_derivative_mask.group(1) if holistic_derivative_mask else None
     
+    return W_h, W_w, orientations_value, c_h, c_w, b_h, b_w, s_h, s_w, hdm
+
+def get_svm_params(detector_name):
+    W_h, W_w, orientations_value, c_h, c_w, b_h, b_w, s_h, s_w, hdm = extract_svm_params(detector_name)
+    
     hog_parameters = HOG_Parameters(
         orientations=int(orientations_value),
         pixels_per_cell=(int(c_h), int(c_w)),
@@ -169,3 +175,12 @@ def get_svm_params(detector_name):
         hog_parameters=hog_parameters,
         window_size=(int(W_h), int(W_w))
     )
+
+def get_short_svm_name(detector_name, with_window_size=False):
+    W_h, W_w, orientations_value, c_h, c_w, b_h, b_w, s_h, s_w, hdm = extract_svm_params(detector_name)
+    
+    name = f"{orientations_value}-({c_h}, {c_w})-({b_h}, {b_w})-({s_h}, {s_w})-{hdm}"
+    
+    if with_window_size:
+        name = f"({W_h}, {W_w})-" + name
+    return name
