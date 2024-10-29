@@ -131,7 +131,7 @@ As the window moves across the image, the feature descriptors $\vec{f_b}$ within
     \label{fig:hog_pipeline}
 \end{figure}
 
-The dimensionality, $d$, of the vector $\vec{L}$ in essence describes the the total number of individual features, or gradients in a specific region of the image. Formally, it is said that the vector $\vec{L}$ belongs in a feature space of $d$ dimensions ($\vec{L} \in \mathcal{R}^{d}$). The higher the dimensions of this space, the more information a model has to distinguish between a pedestrian and the background or a humanoid silhouette. 
+The dimensionality, $d$, of the vector $\vec{L}$ in essence describes the the total number of individual features, or gradients in a specific region of the image. Formally, it is said that the vector $\vec{L}$ belongs in a feature space of $d$ dimensions ($\vec{L} \in \mathcal{R}^{d}$). The higher the dimensions of this space, the more information a model has to distinguish between a pedestrian and the background or a humanoid silhouette (though this is not always the case, as explained in section \ref{sec:curse_of_dimensionality}). 
 
 If we were to restrict the possible spatial block region's horizontal, $b_w$, and vertical, $b_h$, dimensions to even numbers, it could be easily expressed that the center coordinates, $x$ and $y$, of any block are bounded within $\left[ \frac{b_w}{2}; \frac{W_w}{c_w} - \frac{b_w}{2}\right]$ and $\left[ \frac{b_h}{2}; \frac{W_h}{c_h} - \frac{b_h}{2}\right]$ sets of cell values, respectively, as illustrated in figure \ref{fig:center_coords}
 
@@ -214,5 +214,16 @@ Traditionally obtaining the largest possible margin $\gamma$ would be a quadrati
 
 % TODO: Will I even be able to explain how to maximise the margin?
 
+\subsection{The Curse of Dimensionality}\label{sec:curse_of_dimensionality}
+
+While it would be reasonable to intuitively to assume that the more information, or vector dimensions, a machine is provided during training, the more accurate it would be at classification tasks, the classic "curse of dimensionality" problem shows that this is not necessarily the case \cite{jain_1982_39} \cite{friedman_1997_on}, as overfitting, the process of fitting to noise rather than underlying patterns, \cite{overfitting} occurs when the amount of "specific information" (the dimensions of each data point's vector $\vec{L}$) is significantly greater than "global information" (the amount of data points in a data set) \cite{overfitting} \cite{liu_2016_overfitting}, as shown in figure \ref{fig:curse_dim}. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{images/cursefigure.png}
+    \caption{Multiple graphs which demonstrate the "curse of dimensionality". The histogram plots show the distributions of all pairwise distances between randomly distributed points within $d$-dimensional unit squares. As the number of dimensions $d$ grows, all distances concentrate within a very small range. Source: \cite{cornell_curse_notes}
+}
+    \label{fig:curse_dim}
+\end{figure}
 
 

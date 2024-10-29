@@ -5,7 +5,7 @@ COMPUTED_PATH = '/Users/adamsam/repos/ee/Pedestrian-Detection/computed'
 window_sizes = [(100, 50), (128, 96), (128, 64), (112, 48)]
 orientations = [9, 13, 18]
 pixels_per_cell_list = [(4,4), (6,6), (8,8), (10,10)]
-cells_per_block_list = [(1,1),(2,2), (3,3), (4,4)]
+cells_per_block_list = [(1,1), (2,2), (3,3), (4,4)]
 block_strides = [(1,1), (2,2), (3,3)]
 holistic_derivative_masks = [True, False]
 

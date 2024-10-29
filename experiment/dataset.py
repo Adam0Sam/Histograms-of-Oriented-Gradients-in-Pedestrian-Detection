@@ -6,6 +6,11 @@ from tqdm import tqdm
 import random
 
 datasets = ['INRIA', 'caltech_30', 'PnPLO']
+dataset_name_map = {
+    'INRIA': 'INRIA',
+    'caltech_30': 'Caltech',
+    'PnPLO': 'PnPLO'
+}
 
 class SampleCount:
     def __init__(self, pos_count, neg_count):

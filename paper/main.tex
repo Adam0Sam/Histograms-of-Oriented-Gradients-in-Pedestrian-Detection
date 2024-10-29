@@ -35,8 +35,8 @@
   {\endoldfigure\vspace{0.5cm}} % Add vspace after the figure
 \let\oldtable\table
 \let\endoldtable\endtable
-\renewenvironment{table}[1][h]
-  {\oldtable[#1]\vspace{0.5cm}\centering} % Add vspace before the figure and center it
+\renewenvironment{table}[1][H]
+  {\oldtable[#1]\vspace{0.5cm}} % Add vspace before the figure and center it
   {\endoldtable\vspace{0.5cm}} % Add vspace after the figure
 %Tables
 \usepackage{multirow}
@@ -90,7 +90,7 @@
         \vspace{3cm}
         \Large{\textbf{Investigating Histograms of Oriented Gradients in Pedestrian Detection}}\\
         \vspace{1.5cm}
-        \large{How does the sliding window size, block density, and the derivative mask of a Histogram of Oriented Gradients descriptor impact the performance of a linear Support Vector Machine pedestrian classifier?}\\
+        \large{Research question: How does the sliding window size, block density, and the derivative mask of a Histogram of Oriented Gradients descriptor impact the performance of a linear Support Vector Machine pedestrian classifier?}\\
         \vspace{3cm}
         \large{Word Count: 2000}
         \vfill
@@ -107,20 +107,30 @@
 
 \begin{center}
 \pdfbookmark{\contentsname}{Contents}
+\begin{spacing}{0.1}
 \tableofcontents
+\end{spacing}
+
 \vspace{1in}
 \end{center}
 \newpage
 \pagenumbering{arabic}
-\input{sections/introduction}
+% \input{sections/introduction}
 \input{sections/background}
-\input{sections/methodology}
+% \input{sections/methodology}
+
+\input{sections/experimental-results.tex}
+
+\input{sections/data-analysis.tex}
+
+\input{sections/limitations.tex}
+
+\input{sections/conclusions.tex}
+
 \newpage
 \printbibliography[
 heading=bibintoc,
 ]
 \newpage
-\input{sections/appendices}
-\input{tables/INRIA-tables.tex}
-
+\input{sections/appendices/appendices.tex}
 \end{document}

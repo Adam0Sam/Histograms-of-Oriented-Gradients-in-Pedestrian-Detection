@@ -1,4 +1,5 @@
 import os
+from pyexpat import model
 from telnetlib import COM_PORT_OPTION
 import joblib
 import numpy as np
@@ -15,7 +16,7 @@ def load_svm(svm_parameters: SVM_Parameters, model_dir=None, custom_name=None):
     model_file_name = os.path.join(model_dir, model_name + ".pkl")
     if os.path.exists(model_file_name):
         return joblib.load(model_file_name)
-    raise Exception("Model not found")
+    raise Exception("Model not found", model_file_name)
 
 def train_svm(svm_parameters: SVM_Parameters, data_points_location, labels_location, overwrite=False, custom_name=None, kernel_type="linear"):
     from sklearn.linear_model import SGDClassifier

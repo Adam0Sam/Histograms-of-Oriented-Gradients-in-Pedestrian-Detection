@@ -97,6 +97,19 @@ def get_concatenated_test_samples(svm_parameters: SVM_Parameters):
         total_y.append(y_test)
     return np.concatenate(total_x), np.concatenate(total_y)
 
+def get_test_samples(svm_parameters: SVM_Parameters, dataset):
+    if dataset not in datasets:
+        raise ValueError(f"Dataset {dataset} not found in datasets.")
+
+    X_test_raw = np.load(get_dataset_path(svm_parameters.window_size, 'test', 'point', dataset))
+    X_test = hog_transform(
+        grayscale_transform(X_test_raw),
+        svm_parameters.hog_parameters
+    )
+    y_test = np.load(get_dataset_path(svm_parameters.window_size, 'test', 'label', dataset))
+    return X_test, y_test
+    
+
 def get_attr_names(cls):
     if not hasattr(cls, '__class__'):
         raise ValueError("The provided object is not an instance of a class.")
