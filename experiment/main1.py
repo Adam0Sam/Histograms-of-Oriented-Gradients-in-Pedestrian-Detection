@@ -17,7 +17,7 @@ if __name__ == '__main__':
     average_score_map = {}
     for pixels_per_cell in pixels_per_cell_list:
         with_parameter = get_detectors_by_prop('pixels_per_cell', pixels_per_cell)
-        mcc_scores = get_k_rows('mcc', 'PnPLO', with_parameter, -1, sort=False)   
+        mcc_scores = get_k_rows('mcc', 'total', with_parameter, -1, sort=False)   
         average_score_map[pixels_per_cell] = sum([m[1] for m in mcc_scores]) / len(mcc_scores)
         smoothed_mcc_scores = uniform_filter1d([m[1] for m in mcc_scores], size=5)
         max_score_idx, max_score_val = max(enumerate([m[1] for m in mcc_scores]), key=lambda x: x[1])
@@ -42,8 +42,7 @@ if __name__ == '__main__':
     ax.legend(loc='lower right')
     ax.set_xlabel('Model Pair Index')
     ax.set_ylabel('MCC Score')
-    ax.set_title(f'General MCC Scores for Different Window Size')
-    plt.savefig(f'/Users/adamsam/repos/ee/Pedestrian-Detection/code/experiment/mcc_cell_size_PnPLO.png', dpi=300)
-    print(average_score_map)
+    ax.set_title(f'General MCC Scores for Different Cell Sizes')
+    plt.savefig(f'/Users/adamsam/repos/ee/Pedestrian-Detection/code/paper/images/mcc_cell_size_total.png', dpi=300)
 
     

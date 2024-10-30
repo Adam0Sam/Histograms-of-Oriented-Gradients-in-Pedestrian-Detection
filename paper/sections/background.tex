@@ -147,7 +147,7 @@ The dimensionality $d$ of the final feature vector $\vec{L}$ depends on two fact
 \begin{equation}
     \label{vector_dimensions}
     \begin{split}
-    d &= \left\lfloor \frac{\frac{W_w}{c_w}-2\cdot\frac{b_w}{2}+1}{s_w} \right\rfloor\left\lfloor \frac{\frac{W_h}{c_h}-2\cdot\frac{b_h}{2}+1}{s_h} \right\rfloor\cdot b_w b_h\omega \\ &= \left\lfloor  \frac{W_w- c_w(b_w-1)}{s_w c_w}  \right\rfloor \left\lfloor   \frac{W_h -c_h(b_h +-1)}{s_h c_h} \right\rfloor b_w b_h\omega
+    d &= \left\lfloor \frac{\frac{W_w}{c_w}-2\cdot\frac{b_w}{2}+1}{s_w} \right\rfloor\left\lfloor \frac{\frac{W_h}{c_h}-2\cdot\frac{b_h}{2}+1}{s_h} \right\rfloor\cdot b_w b_h\omega \\ &= \left\lfloor  \frac{W_w- c_w(b_w-1)}{s_w c_w}  \right\rfloor \left\lfloor   \frac{W_h -c_h(b_h -1)}{s_h c_h} \right\rfloor b_w b_h\omega
     \end{split}
 \end{equation}
 
@@ -187,7 +187,7 @@ A hyperplane with the maximum possible margin between its support vectors is inc
     \label{fig:hyperplane_geometry}
 \end{figure}
 
-With a defined margin, finding the optimal hyperplane can be formulated as a concrete optimization problem: maximize the margin $\gamma$ while ensuring all data points lie on the correct side of the hyperplane based on their class labels. The latter requirement istockphoto expressed mathematically as the inequality in equation \ref{hyper_inequality} \cite{ng_support}. For any data point $x_i$, the expression $w^\top x_i + b$ determines its position relative to the hyperplane $\mathcal{H}$: positive values indicate $x_i$ lies above $\mathcal{H}$, while negative values indicate it lies below. Therefore, when this expression is multiplied by the class label $y_i$ (which is either +1 or -1), the result should be positive for correctly classified points, providing a mathematical foundation for the optimization constraint.
+With a defined margin, finding the optimal hyperplane can be formulated as a concrete optimization problem: maximize the margin $\gamma$ while ensuring all data points lie on the correct side of the hyperplane based on their class labels. The latter requirement is expressed mathematically as the inequality in equation \ref{hyper_inequality} \cite{ng_support}. For any data point $x_i$, the expression $w^\top x_i + b$ determines its position relative to the hyperplane $\mathcal{H}$: positive values indicate $x_i$ lies above $\mathcal{H}$, while negative values indicate it lies below. Therefore, when this expression is multiplied by the class label $y_i$ (which is either +1 or -1), the result should be positive for correctly classified points, providing a mathematical foundation for the optimization constraint.
 
 \begin{equation}\label{hyper_inequality}
 y_{i}(w^\top x_{i}+b)\ge 0 \quad 

@@ -172,31 +172,9 @@ While the table in sections \ref{section:best_tables} and \ref{section:worst_tab
 \end{figure}
 
 
-\subsubsection{Graphs for Different Cell Sizes}
+\subsubsection{Graphs for Block Density}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\linewidth]{mcc_cell_size_INRIA.png}
-    \caption{
-        MCC scores for INRIA dataset, grouped by cell size.
-    }
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\linewidth]{mcc_cell_size_caltech_30.png}
-    \caption{
-        MCC scores for Caltech dataset, grouped by cell size.
-    }
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\linewidth]{mcc_cell_size_PnPLO.png}
-    \caption{
-        MCC scores for PnPLO dataset, grouped by cell size.
-    }
-\end{figure}
+Block density accurately describes the relationship between cell size and block size, though it's not commonly used in literature. Graphs that isolate either of the parameters fail to show their complex interactions, as seen in Figures \ref{fig:cell_size_total} and \ref{fig:block_size_total}. For example, a (4,4) block may outperform (2,2) with (4,4) cells, but underperform with (8,8) cells. Instead, a 2D matrix of block size and cell size, with encoded MCC scores (a heatmap), better captures the relationship between the two parameters.
 
 \begin{figure}
     \centering
@@ -204,33 +182,10 @@ While the table in sections \ref{section:best_tables} and \ref{section:worst_tab
     \caption{
         MCC scores for the aggregate test dataset, grouped by cell size.
     }
+    \label{fig:cell_size_total}
 \end{figure}
 
 \subsubsection{Graphs for Different Block Sizes}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\linewidth]{mcc_block_size_INRIA.png}
-    \caption{
-        MCC scores for INRIA dataset, grouped by block size.
-    }
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\linewidth]{mcc_block_size_caltech_30.png}
-    \caption{
-        MCC scores for Caltech dataset, grouped by block size.
-    }
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\linewidth]{mcc_block_size_PnPLO.png}
-    \caption{
-        MCC scores for PnPLO dataset, grouped by block size.
-    }
-\end{figure}
 
 \begin{figure}
     \centering
@@ -238,6 +193,43 @@ While the table in sections \ref{section:best_tables} and \ref{section:worst_tab
     \caption{
         MCC scores for the aggregate test dataset, grouped by block size.
     }
+    \label{fig:block_size_total}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{mcc_cell_block_heatmap_INRIA.png}
+    \caption{
+        A heatmap of MCC scores for the INRIA dataset, grouped by cell size and block size.
+    }
+    \label{fig:cell_block_heatmap_inria}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{mcc_cell_block_heatmap_caltech_30.png}
+    \caption{
+        A heatmap of MCC scores for the Caltech dataset, grouped by cell size and block size.
+    }
+    \label{fig:cell_block_heatmap_caltech}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{mcc_cell_block_heatmap_PnPLO.png}
+    \caption{
+        A heatmap of MCC scores for the PnPLO dataset, grouped by cell size and block size.
+    }
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{mcc_cell_block_heatmap_total.png}
+    \caption{
+        A heatmap of MCC scores for the aggregate test dataset, grouped by cell size and block size.
+    }
+    \label{fig:cell_block_heatmap_total}
 \end{figure}
 
 \subsubsection{Graphs for Block Sizes with Different Block Strides}
@@ -248,6 +240,7 @@ While the table in sections \ref{section:best_tables} and \ref{section:worst_tab
     \caption{
         MCC scores for the aggregate test dataset, grouped by block size and block stride. The block stride is set to (2, 2). The overlap is defined by $1 - \frac{\text{block stride (h or w)}}{\text{block size (h or w)}}$ since the horizontal and vertical components of both block stride values and block sizes values are respectively identical.
     }
+    \label{fig:overlap_2_2}
 \end{figure}
 
 \begin{figure}
@@ -256,6 +249,7 @@ While the table in sections \ref{section:best_tables} and \ref{section:worst_tab
     \caption{
         MCC scores for the aggregate test dataset, grouped by block size and block stride. The block stride is set to (3, 3). The overlap is defined by $1 - \frac{\text{block stride (h or w)}}{\text{block size (h or w)}}$ since the horizontal and vertical components of both block stride values and block sizes values are respectively identical.
     }
+    \label{fig:overlap_3_3}
 \end{figure}
 
 \begin{figure}
@@ -264,4 +258,5 @@ While the table in sections \ref{section:best_tables} and \ref{section:worst_tab
     \caption{
         MCC scores for the aggregate test dataset, grouped by block size and block stride. The block stride is set to (4, 4). The overlap is defined by $1 - \frac{\text{block stride (h or w)}}{\text{block size (h or w)}}$ since the horizontal and vertical components of both block stride values and block sizes values are respectively identical.
     }
+    \label{fig:overlap_4_4}
 \end{figure}
