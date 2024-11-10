@@ -63,7 +63,7 @@ class MCCF1CurveDisplay:
 
             # Plot threshold points and values
             ax.scatter(self.f1[indices], self.mcc[indices],
-                       color='red', zorder=2, s=20)
+                       color='orange', zorder=2, s=20)
 
             for idx in indices:
                 # Add annotation with threshold value

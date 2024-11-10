@@ -1,5 +1,16 @@
 \appendix
 \section{Appendices}
+
+\subsection{Additional Explanations}
+
+\subsection{Defining Matthew's Correlation Coefficient}\label{appendix:matthews_correlation}
+$$\mathrm{MCC} = \frac{\mathrm{TP}\cdot\mathrm{TN}-\mathrm{FP}\cdot\mathrm{FN}}{\sqrt{(\mathrm{TP}+\mathrm{FP})\cdot(\mathrm{TP}+\mathrm{FN})\cdot(\mathrm{TN}+\mathrm{FP})\cdot(\mathrm{TN})+\mathrm{FN}}}$$ 
+The values of MCC are bounded within the range $[-1;1]$, where 1 represents a perfect prediction, 0 represents random prediction and -1 total disagreement between prediction and observation. Refer to \cite{chicco_jurman_2020_mcc_f1} regarding the necessary normalization to make the MCC values bounded within $[0;1]$ so that they can be plotted against F1 scores (which themselves are bounded in $[0;1]$)
+
+\subsubsection{Deriving the Frames Per Person in the Caltech Dataset}\label{appendix:caltech_frames_per_person}
+The total running time of the Caltech videos is $\sim 10\mathrm{h}$ \cite{dollar_2009_pedestrian}, this gives a frame per second rate of $\sim 7 \text{ frames}/\mathrm{s}$. Since a person is present in a video for $\sim 5 \mathrm{s}$ \cite{dollar_2009_pedestrian}, we can approximate that each identifiable individual will, on average, be present in $34 \text{ frames}$
+\subsubsection{Choice of Grayscale Conversion}\label{appendix:grayscale_discuss}
+The primary motivation behind the simple color mapping in equation \ref{eq:colour_map} is the wide adoption in image processing libraries, such as \href{https://scikit-image.org/}{scikit-image}. While there are more sophisticated methods of RGB to grayscale conversion \cite{madk_2008_perceptual}, the computational overhead is difficult to justify given the the rather ambiguous nature of assessing which specific color space transformation produces universally desirable outputs for all involved input images \cite{madk_2008_perceptual}.
 \input{sections/appendices/code-snippets.tex}
 \subsection{Tables of Score Data}\label{appendix:tables_of_data}
 \newpage

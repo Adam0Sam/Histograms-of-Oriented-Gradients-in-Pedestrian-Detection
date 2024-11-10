@@ -136,20 +136,30 @@ def get_detector_pairs(prop_name, prop_value):
     
     
 
-def get_detectors_by_prop(prop, prop_value, return_inadequate=False):
+def get_detectors_by_prop(prop, prop_value, return_inadequate=False, custom_detectors=None):
     if prop not in get_attr_names(SVM_Parameters) and prop not in get_attr_names(HOG_Parameters):
         raise ValueError(f"Property {prop} not found in SVM_Parameters or HOG_Parameters.")
     
     detectors = []
     inadequate_detectors = []
-    for svm_params in iterate_model_parameters():
+    
+    def detector_is_valid(svm_parameters: SVM_Parameters):
         if prop == 'window_size':
-            if getattr(svm_params, prop) == prop_value:
+            return getattr(svm_parameters, prop) == prop_value
+        return getattr(svm_parameters.hog_parameters, prop) == prop_value
+    
+    if custom_detectors:
+        for svm_params in custom_detectors:
+            if detector_is_valid(svm_params):
                 detectors.append(svm_params)
-        elif getattr(svm_params.hog_parameters, prop) == prop_value:
-            detectors.append(svm_params)
-        else:
-            inadequate_detectors.append(svm_params)
+            else:
+                inadequate_detectors.append(svm_params)
+    else:
+        for svm_params in iterate_model_parameters():
+            if detector_is_valid(svm_params):
+                detectors.append(svm_params)
+            else:
+                inadequate_detectors.append(svm_params)
             
     if return_inadequate:
         return detectors, inadequate_detectors
